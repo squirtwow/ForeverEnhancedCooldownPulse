@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.0.1
+
+### Added
+- The minimap button can be free-floating: tick it on the General page, then drag it anywhere.
+- More from Squirt on the General page: EraUI and Forever Enhanced Cooldown Manager.
+
+### Changed
+- Escape now closes the settings during a fight too.
+- The settings and What's new close along with the game's other windows, for example at a loading screen.
+- The minimap button's tooltip now matches the addon's look.
+
 ## 1.0.0
 
 ### Added

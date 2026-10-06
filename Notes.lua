@@ -11,6 +11,20 @@ local T = ns.Theme
 -- first release: there's nothing new to a first install.
 ns.NOTES = {
     {
+        version = "1.0.1",
+        sections = {
+            { "Added", {
+                "The minimap button can be free-floating: tick it on the General page, then drag it anywhere.",
+                "More from Squirt on the General page: EraUI and Forever Enhanced Cooldown Manager.",
+            } },
+            { "Changed", {
+                "Escape now closes the settings during a fight too.",
+                "The settings and What's new close along with the game's other windows, for example at a loading screen.",
+                "The minimap button's tooltip now matches the addon's look.",
+            } },
+        },
+    },
+    {
         version = "1.0.0",
         sections = {
             { "Added", {
@@ -69,12 +83,11 @@ local function Build()
     T:Flat(window, T.BG, T.CONTROL_BORDER)
     T:Paint(function(accent) window:SetBackdropBorderColor(accent[1], accent[2], accent[3], 1) end)
     window:Hide()
-    -- Set before anything hooks them: setting a script later drops hooks.
-    window:SetScript("OnShow", function() ns.EscUpdate() end)
+    -- Set before anything hooks it: setting a script later drops hooks.
     window:SetScript("OnHide", function(self)
         self:StopMovingOrSizing() -- closed mid-drag, it never hears the mouse let go
-        ns.EscUpdate()
     end)
+    ns.CloseOnEscape(window)
     ns.notes = window
 
     local header = T:TitleBar(window, HEADER)

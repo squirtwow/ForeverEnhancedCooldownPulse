@@ -84,8 +84,89 @@ local function Detail(page, text, x, y, width)
     return detail
 end
 
+-- More from Squirt: the author's other addons, each in a card with its logo
+-- (this addon's own copy, so it shows without it), a line about it, and Open
+-- while it's loaded, or its links to copy while it isn't. slash and frame:
+-- its command and its settings window, by their names in the game, only read.
+local MORE_HEIGHT, MORE_GAP = 74, 8
+local GET_IT = "Get it on CurseForge or GitHub: click one for its link."
+local INSTALL = COPY .. " On CurseForge, Install opens the CurseForge app."
+local MORE = {
+    {
+        name = "EraUI", folder = "EraUI", icon = "EraUIIcon.tga", slash = "ERAUI", frame = "EraUISettingsFrame",
+        about = "The Classic look for WoW Forever's whole interface, with quality of life options.",
+        installed = "Installed. Type /era, or click Open.",
+        open = "Open EraUI's settings, as /era does.",
+        links = {
+            { label = "CurseForge", url = "https://www.curseforge.com/wow/addons/eraui", note = INSTALL },
+            { label = "GitHub", url = "https://github.com/squirtwow/EraUI" },
+        },
+    },
+    {
+        name = "Forever Enhanced Cooldown Manager", folder = "ForeverEnhancedCooldownManager", icon = "FECMIcon.tga",
+        slash = "FECM", frame = "FECMFrame",
+        about = "Blizzard's Cooldown Manager restyled, plus cooldown, buff and cast bars of your own.",
+        installed = "Installed. Type /ccm, or click Open.",
+        open = "Open Forever Enhanced Cooldown Manager's settings, as /ccm does.",
+        links = {
+            { label = "CurseForge", url = "https://www.curseforge.com/wow/addons/forever-enhanced-cooldown-manager", note = INSTALL },
+            { label = "GitHub", url = "https://github.com/squirtwow/ForeverEnhancedCooldownManager" },
+        },
+    },
+}
+
+local function MoreCard(window, page, more, y)
+    local card = CreateFrame("Frame", nil, page, "BackdropTemplate")
+    card:SetPoint("TOPLEFT", 16, y)
+    card:SetSize(WIDTH - NAV - 34, MORE_HEIGHT)
+    T:Flat(card, T.PANEL, T.BORDER)
+    local icon = card:CreateTexture(nil, "ARTWORK")
+    icon:SetSize(36, 36)
+    icon:SetPoint("TOPLEFT", 12, -12)
+    icon:SetTexture(ns.MEDIA .. more.icon)
+    local name = T:Text(card, "GameFontHighlight")
+    name:SetPoint("TOPLEFT", 60, -12)
+    name:SetText(more.name)
+    -- Two lines, then the line under them at the foot: clear of each other.
+    local about = T:Text(card, "GameFontHighlightSmall", T.MUTED)
+    about:SetPoint("TOPLEFT", 60, -28)
+    about:SetWidth(330) -- clear of the buttons on the right
+    about:SetText(more.about)
+    local state = T:Text(card, "GameFontHighlightSmall", T.MUTED)
+    state:SetPoint("BOTTOMLEFT", 60, 8)
+    -- Open: this window goes and the other's comes up, as its command
+    -- brings it. One already open comes to the front, never toggled shut.
+    local open = T:Button(card, "Open", 80, 22)
+    open:SetPoint("RIGHT", -12, 0)
+    open:SetScript("OnClick", function()
+        local run, other = SlashCmdList and SlashCmdList[more.slash], _G[more.frame]
+        local shown = other and other.IsShown and other:IsShown()
+        if not (shown or run) then return end
+        window:Hide()
+        if shown then other:Raise() else run("") end
+    end)
+    window:Hint(open, more.open)
+    local links = {}
+    for i, link in ipairs(more.links) do
+        local button = T:Button(card, link.label, 90, 22)
+        button:SetPoint("RIGHT", -12 - (#more.links - i) * 98, 0)
+        button:SetScript("OnClick", function() CopyLink(more.name .. " on " .. link.label, link.url, link.note) end)
+        window:Hint(button, more.name .. " on " .. link.label .. ", as a link to copy.")
+        links[i] = button
+    end
+    card.icon, card.name, card.about, card.state, card.open, card.links = icon, name, about, state, open, links
+    -- Loaded or not, looked at again each time the page shows.
+    function card:Refresh()
+        local installed = C_AddOns and C_AddOns.IsAddOnLoaded and C_AddOns.IsAddOnLoaded(more.folder)
+        open:SetShown(installed and true or false)
+        for _, button in ipairs(links) do button:SetShown(not installed) end
+        state:SetText(installed and more.installed or GET_IT)
+    end
+    return card
+end
+
 -- Help (the tour, What's new and the Discord), the minimap button, the
--- window's accent, and which version this is.
+-- window's accent, which version this is, and more from Squirt.
 local function BuildGeneral(window, page)
     T:Heading(page, "Help"):SetPoint("TOPLEFT", 16, -16)
     local tour = T:Button(page, "Take the tour", 110, 22)
@@ -116,7 +197,14 @@ local function BuildGeneral(window, page)
     minimap:SetPoint("TOPLEFT", 16, -120)
     window:Hint(minimap, "A button on the minimap for these settings. Off, /fecp still opens them.")
     window.minimap = minimap
-    Detail(page, "Click it for these settings, right-click for What's new, and drag it round the minimap.", 34, -140, 580)
+    local free = T:Check(page, "Free-floating", function(self)
+        if ns.MinimapButton then ns.MinimapButton:SetFree(self:GetChecked()) end
+    end)
+    free:SetPoint("TOPLEFT", 260, -120)
+    window:Hint(free, "Drag the button anywhere on the screen, not just round the minimap. It shows even with the minimap hidden.")
+    window.minimapFree = free
+    Detail(page, "Click it for these settings, right-click for What's new, and drag it round the minimap, or anywhere while it's free-floating.",
+        34, -140, 580)
 
     -- The window's own accent.
     T:Heading(page, "Window accent"):SetPoint("TOPLEFT", 16, -180)
@@ -139,12 +227,22 @@ local function BuildGeneral(window, page)
     window.swatches, window.accentName = swatches, chosen
 
     -- Which version this is, and how to open the window.
-    T:Heading(page, "About"):SetPoint("TOPLEFT", 16, -240)
-    local about = Detail(page, "", 16, -260, 600)
+    T:Heading(page, "About"):SetPoint("TOPLEFT", 16, -236)
+    local about = Detail(page, "", 16, -256, 600)
     window.about = about
 
+    -- More from Squirt: the author's other addons, a card each.
+    T:Heading(page, "More from Squirt"):SetPoint("TOPLEFT", 16, -296)
+    local cards = {}
+    for i, more in ipairs(MORE) do
+        cards[i] = MoreCard(window, page, more, -316 - (i - 1) * (MORE_HEIGHT + MORE_GAP))
+    end
+    window.more = cards
+
     function page:Refresh()
+        for _, card in ipairs(cards) do card:Refresh() end
         minimap:SetChecked(ns.Get("minimap"))
+        free:SetChecked(ns.Get("minimapFree"))
         news:SetUsable(#ns.NOTES > 0)
         local accent = ns.Get("accent")
         for _, swatch in ipairs(swatches) do
@@ -163,7 +261,7 @@ end
 -- What each page is for, in the footer on hover.
 local NAV_NOTES = {
     pulse = "A big icon in the middle of your screen when a cooldown is ready.",
-    general = "The tour, What's new, the Discord, the minimap button and this window's accent.",
+    general = "The tour, What's new, the Discord, the minimap button, this window's accent and Squirt's other addons.",
 }
 
 local function NavItem(window, nav, key, label, y)
@@ -473,13 +571,12 @@ local function BuildWindow()
     window:SetScript("OnShow", function(self)
         if ns.Spells then ns.Spells:Scan() end
         self:Refresh()
-        ns.EscUpdate()
     end)
     window:SetScript("OnHide", function(self)
         -- Closed mid-drag, it never hears the mouse let go: stop moving now.
         self:StopMovingOrSizing()
-        ns.EscUpdate()
     end)
+    ns.CloseOnEscape(window)
 
     -- Header: the addon's icon, and "Enhanced" in the accent.
     local header = T:TitleBar(window, HEADER)

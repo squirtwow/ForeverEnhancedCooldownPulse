@@ -69,9 +69,13 @@ ns.DEFAULTS = {
     accent = "purple", -- the /fecp window's accent colour
     minimap = true, -- the minimap button
     minimapAngle = 285, -- where it sits round the minimap: degrees anticlockwise from the right
+    minimapFree = false, -- free-floating: anywhere on the screen, not on the minimap's edge
+    minimapX = 0, -- where it sits while free-floating: from the middle of the screen
+    minimapY = 0,
 }
 -- Number settings, each within its limits: min, max, default.
 ns.MINIMAP_ANGLE = { 0, 359, 285 }
+ns.MINIMAP_PLACE = { -4000, 4000, 0 }
 ns.PULSE_SIZE = { 64, 512, 272 }
 ns.PULSE_TIME = { 3, 20, 10 } -- tenths of a second: 0.3 to 2 seconds
 ns.PULSE_LONG_SIZE = { 64, 512, 400 }
@@ -81,7 +85,8 @@ ns.PULSE_GROW = { 100, 160, 135 }
 ns.PULSE_PLACE = { -4000, 4000, 0 }
 local NUMBERS = { minimapAngle = ns.MINIMAP_ANGLE, pulseSize = ns.PULSE_SIZE, pulseTime = ns.PULSE_TIME,
     pulseLongSize = ns.PULSE_LONG_SIZE, pulseLongTime = ns.PULSE_LONG_TIME, pulseSeeThrough = ns.PULSE_SEE_THROUGH,
-    pulseGrow = ns.PULSE_GROW, pulseX = ns.PULSE_PLACE, pulseY = ns.PULSE_PLACE }
+    pulseGrow = ns.PULSE_GROW, pulseX = ns.PULSE_PLACE, pulseY = ns.PULSE_PLACE, minimapX = ns.MINIMAP_PLACE,
+    minimapY = ns.MINIMAP_PLACE }
 -- Choices a text setting may hold.
 ns.ACCENT_KEYS = { "orange", "blue", "teal", "purple", "green" }
 ns.PULSE_BORDER_KEYS = { "none", "thin", "thick" }
@@ -484,52 +489,24 @@ function ns.SetHelpSeen()
     db.helpSeen = true
 end
 
--- Escape closes the /fecp window and What's new. The key is borrowed only
--- while one is up and handed back as a fight begins, since bindings cannot
--- change in combat; this keeps the addon out of the game's own Escape
--- handling.
-local escButton
-
--- On screen: a window left open while the interface is hidden (Alt+Z)
--- doesn't count, so Escape goes back to the game and brings the interface
--- back. The window takes the key again as it reappears.
-local function Shown(frame)
-    return frame ~= nil and frame:IsVisible()
-end
-
-function ns.EscUpdate()
-    if not escButton or InCombatLockdown() then return end
-    ClearOverrideBindings(escButton)
-    if Shown(ns.window) or Shown(ns.notes) then
-        SetOverrideBindingClick(escButton, true, "ESCAPE", escButton:GetName())
-    end
-end
-
-local function BuildEscape()
-    escButton = CreateFrame("Button", "FECPEscButton", UIParent)
-    -- What's new sits over the window, so it closes first; then the tour ends,
-    -- leaving the window open.
-    escButton:SetScript("OnClick", function()
-        if Shown(ns.notes) then
-            ns.notes:Hide()
-        elseif ns.Tour and ns.Tour:Active() then
-            ns.Tour:Stop()
-        elseif ns.window then
-            ns.window:Hide()
-        end
-        -- Checked again here too: hiding a frame that's already off screen
-        -- runs no OnHide, so the key would otherwise stay borrowed.
-        ns.EscUpdate()
-    end)
-    escButton:RegisterEvent("PLAYER_REGEN_DISABLED")
-    escButton:RegisterEvent("PLAYER_REGEN_ENABLED")
-    escButton:SetScript("OnEvent", function(self, event)
-        if event == "PLAYER_REGEN_DISABLED" then
-            ClearOverrideBindings(self)
-        else
-            ns.EscUpdate()
-        end
-    end)
+-- Escape closes the /fecp window and What's new through the game's own list
+-- of windows Escape closes (UISpecialFrames), never by changing key bindings:
+-- a binding changed from addon code has the game rebuild your action bars
+-- and state inside the addon's code, which then breaks on your hidden health
+-- (thousands of errors, 2026-10-06). The game reads that list inside a
+-- securecall, so the entries stay out of the rest of its Escape handling.
+-- One Escape closes every listed window that's open; a tour ends as its
+-- window closes (Tour.lua). Like the game's own windows on that list, they
+-- also close whenever the game closes all windows: the interface coming
+-- back after Alt+Z (the game's Escape brings it back first), a loading
+-- screen, death, losing control of your character, or a centre or full
+-- screen panel of the game's opening (Edit Mode, Help).
+local escapeListed = {}
+function ns.CloseOnEscape(frame)
+    local name = frame and frame:GetName()
+    if not name or escapeListed[name] or type(UISpecialFrames) ~= "table" then return end
+    escapeListed[name] = true
+    table.insert(UISpecialFrames, name)
 end
 
 -- Options > AddOns ------------------------------------------------------------------
@@ -585,7 +562,6 @@ local function Load()
             ns.Toggle()
         end
     end
-    BuildEscape()
     BuildOptionsEntry()
 
     if ns.Link then ns.Link:Start() end

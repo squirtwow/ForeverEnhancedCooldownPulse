@@ -325,7 +325,7 @@ do
     SlashCmdList.FECP("debug")
     FECPFrame.help:Click()
     local added = H.NewGlobals()
-    Equal(table.concat(added, ", "), "FECPCopyLink, FECPDebugFrame, FECPEscButton, FECPFrame, FECPMinimapButton, FECPPulse, FECPPulseMover,"
+    Equal(table.concat(added, ", "), "FECPCopyLink, FECPDebugFrame, FECPFrame, FECPMinimapButton, FECPPulse, FECPPulseMover,"
         .. " FECPTour, ForeverEnhancedCooldownPulseDB, ForeverPulseLink, SLASH_FECP1",
         "every name it puts in the game's global space is its own (FECP, its saved settings and the shared link)")
     local theirs = {}

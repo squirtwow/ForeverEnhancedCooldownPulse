@@ -1,8 +1,8 @@
 -- Run the addon's real files against a mock game (Tools/Harness.lua) for the
 -- /fecp window round the pulse: its title bar (icon, name, profile menu, ?
 -- and X), its short list (Cooldown pulse and General), the General page
--- (the tour, What's new, the Discord, the minimap button, the accent and the
--- version), the ? with its tooltip, first-time pulse and note, the welcome
+-- (the tour, What's new, the Discord, the minimap button, the accent, the
+-- version and More from Squirt's cards), the ? with its tooltip, first-time pulse and note, the welcome
 -- and the tour, each page's walkthrough, What's new, Escape, /fecp, the
 -- entry in Options > AddOns, the minimap button, the profile menu, the
 -- debug report, and that everything fits.
@@ -25,6 +25,14 @@ local function Num(v) return ("%.2f"):format(v) end
 local function Box(w)
     local box = FECPTour
     return S[box.count].text .. " " .. w.selected .. " " .. S[box.title].text
+end
+-- How often a window is on the game's list of windows Escape closes.
+local function Listed(name)
+    local count = 0
+    for _, listed in ipairs(UISpecialFrames) do
+        if listed == name then count = count + 1 end
+    end
+    return count
 end
 
 -- The title bar and the list ------------------------------------------------------------------
@@ -60,7 +68,7 @@ do
         .. S[w.nav.general.label].text .. " " .. S[w.nav.general].points[1][3] .. " | " .. S[w.navFrame].width,
         "general,pulse | Cooldown pulse -12 | General -44 | 150", "a short list: Cooldown pulse at the top, then General")
     Equal(Note(w.nav.pulse) .. " | " .. Note(w.nav.general), "A big icon in the middle of your screen when a cooldown is ready."
-        .. " | The tour, What's new, the Discord, the minimap button and this window's accent.", "each says what it's for")
+        .. " | The tour, What's new, the Discord, the minimap button, this window's accent and Squirt's other addons.", "each says what it's for")
     w.nav.general:Click()
     Equal(w.selected .. " " .. tostring(S[w.pages.general].shown) .. " " .. tostring(S[w.pages.pulse].shown) .. " "
         .. tostring(S[w.nav.general.fill].shown) .. " " .. tostring(S[w.nav.pulse.fill].shown), "general true false true false",
@@ -110,7 +118,8 @@ do
             headings[#headings + 1] = S[obj].text
         end
     end
-    Equal(table.concat(headings, ", "), "HELP, MINIMAP BUTTON, WINDOW ACCENT, ABOUT", "help, the minimap button, the accent and about")
+    Equal(table.concat(headings, ", "), "HELP, MINIMAP BUTTON, WINDOW ACCENT, ABOUT, MORE FROM SQUIRT",
+        "help, the minimap button, the accent, about and more from Squirt")
     Equal(S[w.tour.label].text .. ", " .. S[w.news.label].text .. ", " .. S[w.discord.label].text, "Take the tour, What's new, Discord",
         "the tour, What's new and the Discord, side by side")
     Equal(Note(w.tour) .. " | " .. Note(w.discord), "A short tour of this window, a page at a time. /fecp tour starts it too."
@@ -154,6 +163,127 @@ do
     Equal(S[w.about].text, "Forever Enhanced Cooldown Pulse, a copy straight from the source. Made by Squirt. Type /fecp to open this window.",
         "the version, in plain words")
     Equal(H.Problems(), "", "no errors")
+end
+
+-- More from Squirt: EraUI and Forever Enhanced Cooldown Manager ---------------------------------
+
+do
+    local ns = H.Start({ notesSeen = "dev", helpSeen = true })
+    ns.ShowWindow()
+    local w = FECPFrame
+    w:Select("general")
+    local page = w.pages.general
+    local era, manager = w.more[1], w.more[2]
+    -- A card each: its logo (this addon's own copy), its name and a line about it.
+    local function Card(card)
+        local icon = S[card.icon]
+        return S[card.name].text .. " | " .. icon.texture .. " " .. icon.width .. "x" .. icon.height .. " " .. icon.points[1][1] .. " "
+            .. icon.points[1][2] .. " " .. icon.points[1][3] .. " | " .. S[card.about].text
+    end
+    Equal(#w.more .. " | " .. Card(era) .. " || " .. Card(manager), "2 | EraUI | " .. ns.MEDIA .. "EraUIIcon.tga 36x36 TOPLEFT 12 -12"
+        .. " | The Classic look for WoW Forever's whole interface, with quality of life options. || Forever Enhanced Cooldown Manager | "
+        .. ns.MEDIA .. "FECMIcon.tga 36x36 TOPLEFT 12 -12 | Blizzard's Cooldown Manager restyled, plus cooldown, buff and cast bars of your own.",
+        "two cards, EraUI then Forever Enhanced Cooldown Manager, each with its logo, its name and a line about it")
+    -- Neither loaded: their links, no Open.
+    local function Shown(card)
+        local labels = {}
+        for _, button in ipairs({ card.open, card.links[1], card.links[2] }) do
+            if button:IsVisible() then labels[#labels + 1] = S[button.label].text end
+        end
+        return table.concat(labels, ",") .. " | " .. S[card.state].text
+    end
+    local GET = "CurseForge,GitHub | Get it on CurseForge or GitHub: click one for its link."
+    Equal(Shown(era) .. " || " .. Shown(manager), GET .. " || " .. GET, "neither loaded: CurseForge and GitHub, no Open")
+    Equal(Note(era.links[1]) .. " | " .. Note(era.links[2]) .. " | " .. Note(era.open), "EraUI on CurseForge, as a link to copy."
+        .. " | EraUI on GitHub, as a link to copy. | Open EraUI's settings, as /era does.", "EraUI's buttons say what they do")
+    Equal(Note(manager.links[1]) .. " | " .. Note(manager.links[2]) .. " | " .. Note(manager.open),
+        "Forever Enhanced Cooldown Manager on CurseForge, as a link to copy. | Forever Enhanced Cooldown Manager on GitHub, as a link to copy."
+        .. " | Open Forever Enhanced Cooldown Manager's settings, as /ccm does.", "and so do the other's")
+    -- Each link in the copy box, selected, with a word on what to do with it.
+    local COPY = "Press Ctrl+C to copy, then paste it into your browser."
+    local function Copied(button)
+        local copy = FECPCopyLink
+        if copy then S[copy.input].focus = false end
+        button:Click()
+        copy = FECPCopyLink
+        local text = tostring(S[copy].shown) .. " " .. S[copy.title].text .. " " .. S[copy.input].text .. " " .. tostring(S[copy.input].focus)
+            .. " " .. tostring(S[copy.note].text == COPY .. " On CurseForge, Install opens the CurseForge app.")
+        copy.close:Click()
+        return text
+    end
+    Equal(Copied(era.links[1]) .. " | " .. Copied(era.links[2]), "true ERAUI ON CURSEFORGE https://www.curseforge.com/wow/addons/eraui true true"
+        .. " | true ERAUI ON GITHUB https://github.com/squirtwow/EraUI true false", "EraUI's CurseForge and GitHub, each its own link to copy")
+    Equal(Copied(manager.links[1]) .. " | " .. Copied(manager.links[2]), "true FOREVER ENHANCED COOLDOWN MANAGER ON CURSEFORGE"
+        .. " https://www.curseforge.com/wow/addons/forever-enhanced-cooldown-manager true true | true FOREVER ENHANCED COOLDOWN MANAGER ON GITHUB"
+        .. " https://github.com/squirtwow/ForeverEnhancedCooldownManager true false", "the other's too")
+    Equal(S[FECPCopyLink.note].text, COPY, "GitHub's word is just how to copy it")
+    Equal(tostring(S[w].shown), "true", "a link leaves the window open")
+    -- Where they sit: under About and the heading, one above the other with
+    -- a gap, both inside the page with room to spare; inside each, nothing
+    -- on anything else.
+    local pl, pt, pr, pb = H.Rect(page)
+    local function At(obj)
+        local l, t, r, b = H.Rect(obj)
+        return ("%d %d %d %d"):format(l - pl, t - pt, r - pl, b - pt)
+    end
+    local heading
+    for _, obj in ipairs(H.objects) do
+        if S[obj].parent == page and S[obj].text == "MORE FROM SQUIRT" then heading = obj end
+    end
+    local function Layout()
+        local found = {}
+        for _, root in ipairs({ page, era, manager }) do
+            local problems = H.Problems2D(root)
+            if problems ~= "" then found[#found + 1] = problems end
+        end
+        local _, _, _, aboutBottom = H.Rect(w.about)
+        local _, headingTop, _, headingBottom = H.Rect(heading)
+        local _, cardTop = H.Rect(era)
+        if not (aboutBottom < headingTop and headingBottom < cardTop) then found[#found + 1] = "About, the heading and the cards out of order" end
+        if not H.Clear(era, manager) then found[#found + 1] = "the cards on each other" end
+        return table.concat(found, "; ")
+    end
+    Equal(At(heading) .. " | " .. At(era) .. " | " .. At(manager) .. " | " .. (pr - pl) .. "x" .. (pb - pt),
+        "16 296 136 308 | 16 316 622 390 | 16 398 622 472 | 638x489", "the heading, then the cards 74 high and 8 apart, ending 17 above the page's foot")
+    Equal(Layout(), "", "neither loaded: everything clear of everything else, inside the page and the cards")
+
+    -- Both loaded: Open, no links, and how to open each. Looked at again as the page shows.
+    H.addOns.EraUI = true
+    H.Manager({ pulse = false })
+    w:Select("pulse")
+    w:Select("general")
+    Equal(Shown(era) .. " || " .. Shown(manager), "Open | Installed. Type /era, or click Open. || Open | Installed. Type /ccm, or click Open.",
+        "both loaded: Open, and how to open each")
+    Equal(Layout(), "", "both loaded: everything still clear and inside")
+    -- Open: this window goes, and the other's command opens its settings,
+    -- once, as typing it would. Already open, it's brought to the front
+    -- instead, so it's never toggled shut.
+    local ran = {}
+    local eraWindow = CreateFrame("Frame", "EraUISettingsFrame", UIParent)
+    local managerWindow = CreateFrame("Frame", "FECMFrame", UIParent)
+    eraWindow:Hide()
+    managerWindow:Hide()
+    SlashCmdList.ERAUI = function(msg)
+        ran[#ran + 1] = "/era '" .. tostring(msg) .. "'"
+        eraWindow:SetShown(not eraWindow:IsShown())
+    end
+    SlashCmdList.FECM = function(msg)
+        ran[#ran + 1] = "/ccm '" .. tostring(msg) .. "'"
+        managerWindow:SetShown(not managerWindow:IsShown())
+    end
+    local function Opened(card, other)
+        ns.ShowWindow()
+        card.open:Click()
+        return tostring(S[w].shown) .. " " .. table.concat(ran, ",") .. " " .. tostring(S[other].shown) .. " " .. H.Calls(other, "Raise")
+    end
+    Equal(Opened(era, eraWindow), "false /era '' true 0", "EraUI's Open: this window goes, and /era's own command opens EraUI's settings, once")
+    Equal(Opened(era, eraWindow), "false /era '' true 1", "EraUI's settings open already: brought to the front, the command not run again")
+    ran = {}
+    Equal(Opened(manager, managerWindow), "false /ccm '' true 0", "the other's Open: the same, with its own command")
+    Equal(Opened(manager, managerWindow), "false /ccm '' true 1", "and to the front when it's open already")
+    Equal(H.Problems(), "", "no errors from More from Squirt")
+    _G.EraUISettingsFrame, _G.FECMFrame = nil, nil
+    H.Manager(nil)
 end
 
 -- The ?'s tooltip: just under it, in the addon's own look ------------------------------------------
@@ -393,6 +523,7 @@ do
     for _, file in ipairs(H.FILES) do
         assert(loadfile(file))(H.ADDON, released)
         if file == "Notes.lua" then
+            for i = #released.NOTES, 1, -1 do released.NOTES[i] = nil end
             released.NOTES[1] = { version = released.UNRELEASED, sections = { { "Added", { "Cooldown pulse, as its own addon." } } } }
         end
     end
@@ -406,7 +537,7 @@ do
     local items = {}
     for _, row in ipairs(notes.flow) do items[#items + 1] = S[row.text].text end
     Equal(table.concat(items, " | "), "ADDED | Cooldown pulse, as its own addon.", "the notes, a heading and a bullet")
-    Equal(tostring(H.bindings[FECPEscButton]), "ESCAPE:FECPEscButton", "Escape closes it")
+    Equal(Listed("FECPNotes"), 1, "Escape closes it: it's on the game's own list")
     notes.tour:Click()
     local w, box = FECPFrame, FECPTour
     Equal(tostring(S[notes].shown) .. " " .. Box(w), "false 1 of 5 pulse TURN IT ON", "Show me what's new: its tour, over the window")
@@ -420,11 +551,10 @@ do
     notes.discord:Click()
     Equal(tostring(S[FECPCopyLink].shown), "true", "What's new's Discord gives the invite")
     FECPCopyLink.close:Click()
-    -- Escape: What's new first, then the window.
-    FECPEscButton:Click()
-    Equal(tostring(S[notes].shown) .. " " .. tostring(S[w].shown), "false true", "Escape: What's new closes first")
-    FECPEscButton:Click()
-    Equal(tostring(S[w].shown) .. " " .. tostring(H.bindings[FECPEscButton]), "false nil", "then the window, the key handed back")
+    -- Escape: What's new and the window at once.
+    Equal(tostring(CloseSpecialWindows()) .. " " .. tostring(S[notes].shown) .. " " .. tostring(S[w].shown), "1 false false",
+        "Escape closes What's new and the window")
+    Equal(#H.bindings, 0, "no key binding changed")
     -- Not again for the same version.
     H.Environment()
     released = {}
@@ -449,16 +579,18 @@ do
     Equal(table.concat(commands, ","), "FECP", "one command of its own")
     SlashCmdList.FECP("")
     local w = FECPFrame
-    Equal(tostring(S[w].shown) .. " " .. tostring(H.bindings[FECPEscButton]), "true ESCAPE:FECPEscButton", "open: Escape is borrowed")
+    Equal(tostring(S[w].shown) .. " " .. Listed("FECPFrame"), "true 1", "open: Escape closes it, as it's on the game's own list")
+    -- In a fight too, through the game's list: no key is taken or handed back.
     H.Combat(true)
-    Equal(tostring(H.bindings[FECPEscButton]), "nil", "a fight: the key handed back at once")
+    Equal(tostring(CloseSpecialWindows()) .. " " .. tostring(S[w].shown), "1 false", "Escape in a fight closes it")
     H.Combat(false)
-    Equal(tostring(H.bindings[FECPEscButton]), "ESCAPE:FECPEscButton", "after it, borrowed again")
+    Equal(tostring(CloseSpecialWindows()), "nil", "nothing of the addon's open: Escape goes on to the game's menu")
     SlashCmdList.FECP("tour")
-    FECPEscButton:Click()
-    Equal(tostring(S[FECPTour].shown) .. " " .. tostring(S[w].shown), "false true", "Escape ends the tour first, the window stays")
-    FECPEscButton:Click()
-    Equal(tostring(S[w].shown) .. " " .. tostring(H.bindings[FECPEscButton]), "false nil", "then closes the window")
+    Equal(tostring(S[FECPTour].shown) .. " " .. tostring(S[w].shown), "true true", "the tour, over the window")
+    CloseSpecialWindows()
+    Equal(tostring(S[FECPTour].shown) .. " " .. tostring(S[w].shown) .. " " .. tostring(ns.Tour:Active()), "false false false",
+        "Escape closes the window and ends the tour")
+    Equal(#H.bindings .. " " .. Listed("FECPFrame"), "0 1", "no key binding changed, the window listed once however often it opens")
     SlashCmdList.FECP("  ")
     SlashCmdList.FECP("")
     Equal(tostring(S[w].shown), "false", "/fecp toggles it")
@@ -479,9 +611,17 @@ do
     local at = S[button].points[1]
     Equal(table.concat({ at[1], tostring(at[2] == Minimap), at[3], ("%.1f"):format(at[4]), ("%.1f"):format(at[5]) }, " ") .. " "
         .. ns.Get("minimapAngle") .. " " .. S[button].name, "CENTER true CENTER 19.2 -71.5 285 FECPMinimapButton", "at 285 degrees round the minimap")
+    S[GameTooltip].lines = nil
     S[button].scripts.OnEnter(button)
-    Equal(table.concat(S[GameTooltip].lines, ", "), "Click: settings, Right-click: What's new, Drag: move it round the minimap",
-        "its tooltip says what it does")
+    local tip = ns.Theme.tip
+    Equal(S[tip.text].text .. "|" .. tostring(S[tip].shown) .. "|" .. S[tip].points[1][1],
+        "Click: settings\nRight-click: What's new\nDrag: move it round the minimap|true|TOPRIGHT",
+        "its tooltip says what it does, the addon's own, under the button")
+    -- Never the game's tooltip: an addon writing into it taints it, and in
+    -- Forever it then breaks on your hidden health every frame (thousands
+    -- of errors, 2026-10-06).
+    Equal(tostring(S[GameTooltip].lines) .. " " .. tostring(S[GameTooltip].shown), "nil false", "Blizzard's tooltip untouched")
+    S[button].scripts.OnLeave(button)
     S[button].scripts.OnClick(button, "LeftButton")
     Equal(tostring(S[w].shown), "true", "a click opens the settings")
     S[button].scripts.OnClick(button, "LeftButton")
@@ -491,6 +631,37 @@ do
     Equal(ns.Get("minimapAngle") .. " " .. tostring(button.isMoving), "218 nil", "dragged round to where the cursor is, and saved")
     S[button].scripts.OnClick(button, "LeftButton")
     Equal(tostring(S[w].shown), "false", "a click just after the drag is the drag letting go")
+    -- Free-floating (the General page): anywhere on the screen, held by the
+    -- screen itself so it shows with the minimap hidden, kept where it's dropped.
+    local function At()
+        local p = S[button].points[1]
+        local to = p[2] == UIParent and "screen" or p[2] == Minimap and "minimap" or "?"
+        return ("%s %s %.1f %.1f"):format(p[1], to, p[4], p[5])
+    end
+    local onRing = At()
+    SlashCmdList.FECP("")
+    w:Select("general")
+    Equal(tostring(w.minimapFree.checked) .. " " .. tostring(Last(button, "SetParent") == Minimap), "false true",
+        "free-floating: a General tick, off to start with")
+    S[button].cx, S[button].cy = 447.7, 347.7 -- where it is on the minimap now
+    w.minimapFree:Click()
+    Equal(tostring(ns.Get("minimapFree")) .. " " .. tostring(Last(button, "SetParent") == UIParent) .. " " .. At(),
+        "true true CENTER screen -52.0 -52.0", "ticked: held by the screen, just where it was")
+    S[button].scripts.OnEnter(button)
+    Equal(S[tip.text].text, "Click: settings\nRight-click: What's new\nDrag: move it anywhere", "its tooltip says so")
+    S[button].scripts.OnLeave(button)
+    _G.GetCursorPosition = function() return 600, 450 end
+    S[button].scripts.OnDragStart(button)
+    S[button].scripts.OnUpdate(button)
+    Equal(At(), "CENTER screen 100.0 50.0", "dragged anywhere, following the cursor")
+    S[button].scripts.OnDragStop(button)
+    local saved = ForeverEnhancedCooldownPulseDB
+    Equal(saved.minimapX .. " " .. saved.minimapY .. " " .. ns.Get("minimapAngle"), "100 50 218", "saved where it's dropped, its minimap spot kept")
+    Equal(tostring(ns.Valid("minimapX", 5000)) .. " " .. tostring(ns.Valid("minimapY", -12)), "false true", "places stay sensible")
+    w.minimapFree:Click()
+    Equal(tostring(ns.Get("minimapFree")) .. " " .. tostring(Last(button, "SetParent") == Minimap) .. " " .. tostring(At() == onRing),
+        "false true true", "unticked: back on the minimap, where it was")
+    w:Hide()
     -- The debug report: what the pulse is doing, ready to copy.
     SlashCmdList.FECP("debug")
     local debug = FECPDebugFrame

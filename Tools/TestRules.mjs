@@ -203,6 +203,10 @@ test('no text is ever run as code', async () => {
 // Its names in the game's global space: frames named FECP..., its saved
 // settings, its command, and the shared link. Never Forever Enhanced Cooldown
 // Manager's (FECM..., /ccm, /fecm), so the two never collide when both load.
+// More from Squirt (Window.lua) opens the author's other addons by the names
+// they give their command and settings window: read there, never written.
+// FECMIcon.tga is this addon's own copy of that logo.
+const MORE_NAMES = ['FECM', 'FECMFrame', 'FECMIcon.tga'];
 test('every name in the game\'s global space is the addon\'s own', async () => {
   const found = [];
   for (const { name, source, code } of await addonCode()) {
@@ -214,10 +218,18 @@ test('every name in the game\'s global space is the addon\'s own', async () => {
       if (!['SLASH_FECP1', 'SlashCmdList.FECP', '_G.ForeverPulseLink='].includes(text)) found.push(`${name}:${lineOf(code, match.index)} ${text}`);
     }
     for (const { text, index } of literals(source)) {
+      if (name === 'Window.lua' && MORE_NAMES.includes(text)) continue;
       if (/^\/(ccm|fecm)\b|^FECM/i.test(text)) found.push(`${name}:${lineOf(source, index)} "${text}"`);
+    }
+    // Nothing is put in the game's global space by a name worked out as it runs.
+    for (const match of code.matchAll(/\b(SlashCmdList|_G)\s*\[[^\]\n]*\]\s*=(?!=)/g)) {
+      found.push(`${name}:${lineOf(code, match.index)} ${match[1]}[...] =`);
     }
   }
   assert.deepEqual(found, []);
+  const more = codeOnly(await read('Window.lua'));
+  assert.equal(count(more, /\b(SlashCmdList|_G)\s*\[/g), 2, 'More from Squirt reads one command and one window by name');
+  assert.equal(count(more, /local run, other = SlashCmdList and SlashCmdList\[more\.slash\], _G\[more\.frame\]/g), 1, 'into locals');
   const core = codeOnly(await read('Core.lua'));
   assert.match(core, /\n\s*SLASH_FECP1 = ""\s*SlashCmdList\.FECP = function/, '/fecp, its only command');
   assert.match(await read('Core.lua'), /SLASH_FECP1 = "\/fecp"/);
@@ -225,7 +237,8 @@ test('every name in the game\'s global space is the addon\'s own', async () => {
 });
 
 // Forever Enhanced Cooldown Manager's saved settings are only read, in
-// Link.lua alone, and only while it's loaded; nothing of it is ever called.
+// Link.lua alone, and only while it's loaded; nothing of it is ever called
+// but its command, when More from Squirt's Open is clicked (Window.lua).
 test('Forever Enhanced Cooldown Manager\'s saved settings are only read, in Link.lua', async () => {
   const found = [];
   for (const { name, source, code } of await addonCode()) {
@@ -274,10 +287,12 @@ test('no function is defined twice in one file', async () => {
 });
 
 // The art: every file used, each an uncompressed 32-bit TGA, square and a
-// power of two across: the icon at 128, the minimap's mark at 64.
+// power of two across: the icon at 128, the minimap's mark at 64, and
+// More from Squirt's logos (copies of EraUI's and Forever Enhanced Cooldown
+// Manager's) at 128.
 test('the art: every file used, and each one the game can load', async () => {
   const media = (await readdir(new URL('Media/', root))).sort();
-  assert.deepEqual(media, ['FECPIcon.tga', 'Heart.tga', 'MinimapIcon.tga', 'TourArrow.tga']);
+  assert.deepEqual(media, ['EraUIIcon.tga', 'FECMIcon.tga', 'FECPIcon.tga', 'Heart.tga', 'MinimapIcon.tga', 'TourArrow.tga']);
   const sources = (await Promise.all((await rootFiles(/\.(lua|toc)$/i)).map(read))).join('\n');
   const sizes = {};
   for (const file of media) {
@@ -289,10 +304,14 @@ test('the art: every file used, and each one the game can load', async () => {
     assert.equal(data[17], 8, `${file}: 8 bits of alpha, bottom row first`);
     assert.equal(width, height, `${file}: square`);
     assert.equal(width & (width - 1), 0, `${file}: a power of two`);
-    assert.equal(data.length, 18 + width * height * 4, `${file}: whole`);
+    // Whole: every pixel, then at most the 26-byte footer some tools add.
+    const pixels = 18 + width * height * 4;
+    const footer = data.length === pixels + 26 && data.toString('latin1', data.length - 18) === 'TRUEVISION-XFILE.\0';
+    assert.ok(data.length === pixels || footer, `${file}: whole`);
     sizes[file] = width;
   }
-  assert.deepEqual(sizes, { 'FECPIcon.tga': 128, 'Heart.tga': 32, 'MinimapIcon.tga': 64, 'TourArrow.tga': 32 });
+  assert.deepEqual(sizes, { 'EraUIIcon.tga': 128, 'FECMIcon.tga': 128, 'FECPIcon.tga': 128, 'Heart.tga': 32, 'MinimapIcon.tga': 64,
+    'TourArrow.tga': 32 });
   // The minimap's mark fills its square, as Forever Enhanced Cooldown
   // Manager's does: something drawn (its ring is see-through) within a few
   // pixels of each edge.
@@ -378,4 +397,44 @@ test('no other addon is named anywhere', async () => {
   assert.ok(OTHERS.has(hash(shared.join(' '))), "a name the list has, shared in part with one of Squirt's");
   assert.equal(ownWords(shared).size, 0, 'counted on its own');
   assert.equal(ownWords(['forever', ...shared]).size, 4, 'and passed over only as part of the whole own name');
+});
+
+// Never the game's tooltip: an addon writing into it taints it, and in
+// Forever it then breaks on your hidden health every frame it shows a player
+// (thousands of errors, 2026-10-06). The addon's own (Theme.lua T:ShowTip).
+test("never the game's tooltip", async () => {
+  const names = (await readdir(root)).filter(name => name.endsWith('.lua'));
+  const using = [];
+  for (const name of names) if (/\bGameTooltip\b/.test(noComments(await read(name)))) using.push(name);
+  assert.deepEqual(using, [], 'files using GameTooltip');
+});
+
+// Escape closes the addon's windows through the game's own list of windows
+// it closes (UISpecialFrames), never by changing key bindings: a binding
+// changed from addon code has the game rebuild your action bars and state
+// inside the addon's code, which then breaks on your hidden health
+// (thousands of errors, 2026-10-06). Tools/TestWindow.lua checks Escape
+// closes them, and the mock game counts any binding call as a violation.
+const BINDING = String.raw`SetOverrideBinding\w*|ClearOverrideBindings?|SetBinding\w*|SaveBindings|LoadBindings`;
+test('no key binding is ever changed from addon code', async () => {
+  const found = [];
+  const named = new RegExp(String.raw`(?<![\w])(${BINDING})(?![\w])`, 'g');
+  const byName = new RegExp(String.raw`^(${BINDING})$`);
+  for (const { name, source, code } of await addonCode()) {
+    for (const match of code.matchAll(named)) found.push(`${name}:${lineOf(source, match.index)} ${match[1]}`);
+    for (const { text, index } of literals(source)) {
+      if (byName.test(text)) found.push(`${name}:${lineOf(source, index)} "${text}" by name`);
+    }
+    if (/EscUpdate|EscButton/.test(noComments(source))) found.push(`${name}: the old Escape button`);
+  }
+  assert.deepEqual(found, [], 'nothing changes a key binding');
+});
+
+test("Escape closes the windows through the game's own list", async () => {
+  const [core, window, notes, debug] = await Promise.all(['Core.lua', 'Window.lua', 'Notes.lua', 'Debug.lua']
+    .map(async name => noComments(await read(name))));
+  assert.equal(count(core, /table\.insert\(UISpecialFrames, name\)/g), 1, 'ns.CloseOnEscape lists a window by name');
+  assert.equal(count(window, /ns\.CloseOnEscape\(window\)/g), 1, 'the /fecp window');
+  assert.equal(count(notes, /ns\.CloseOnEscape\(window\)/g), 1, "What's new");
+  assert.equal(count(debug, /table\.insert\(UISpecialFrames, "FECPDebugFrame"\)/g), 1, 'the debug report');
 });

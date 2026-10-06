@@ -503,13 +503,31 @@ function H.Environment()
         return on, on
     end }
     _G.IsAddOnLoaded = nil
-    _G.ClearOverrideBindings = function(owner)
-        if H.lockdown then Violation("changed a binding in combat") end
-        H.bindings[owner] = nil
+    -- Key bindings are never changed from addon code: the game then rebuilds
+    -- your action bars and state inside the addon's code, which breaks on
+    -- your hidden health (thousands of errors, 2026-10-06). Each call is
+    -- kept in H.bindings and is a violation.
+    for _, name in ipairs({ "SetBinding", "SetBindingClick", "SetBindingItem", "SetBindingMacro", "SetBindingSpell",
+        "SetOverrideBinding", "SetOverrideBindingClick", "SetOverrideBindingItem", "SetOverrideBindingMacro",
+        "SetOverrideBindingSpell", "ClearOverrideBinding", "ClearOverrideBindings", "SaveBindings", "LoadBindings" }) do
+        _G[name] = function()
+            H.bindings[#H.bindings + 1] = name
+            Violation("changed a key binding (" .. name .. ")")
+        end
     end
-    _G.SetOverrideBindingClick = function(owner, _, key, button)
-        if H.lockdown then Violation("changed a binding in combat") end
-        H.bindings[owner] = key .. ":" .. button
+    -- The windows Escape closes: the game's own list, and its Escape hiding
+    -- every one on it that's shown (UIParentPanelManager.lua CloseSpecialWindows).
+    _G.UISpecialFrames = {}
+    _G.CloseSpecialWindows = function()
+        local found
+        for _, name in pairs(UISpecialFrames) do
+            local frame = _G[name]
+            if frame and frame:IsShown() then
+                frame:Hide()
+                found = 1
+            end
+        end
+        return found
     end
     _G.Settings = {
         RegisterCanvasLayoutCategory = function(canvas, title) return { canvas = canvas, title = title } end,
