@@ -1,0 +1,8 @@
+package-as: ForeverEnhancedCooldownPulse
+
+manual-changelog: CHANGELOG.txt
+
+ignore:
+  - .github
+  - Screenshots
+  - Tools

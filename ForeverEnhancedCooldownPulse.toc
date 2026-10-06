@@ -1,0 +1,23 @@
+## Interface: 16001
+## Title: Forever Enhanced Cooldown Pulse
+## Notes: A big icon in the middle of your screen the moment a cooldown is ready, for WoW Forever.
+## Author: Squirt
+## Version: @project-version@
+## SavedVariables: ForeverEnhancedCooldownPulseDB
+## IconTexture: Interface\AddOns\ForeverEnhancedCooldownPulse\Media\FECPIcon.tga
+## Category: UI
+## OptionalDeps: ForeverEnhancedCooldownManager
+
+Core.lua
+Link.lua
+Theme.lua
+Ranks.lua
+Spells.lua
+Pulse.lua
+PulsePage.lua
+ProfileMenu.lua
+Window.lua
+Tour.lua
+MinimapButton.lua
+Notes.lua
+Debug.lua

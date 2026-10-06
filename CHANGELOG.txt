@@ -1,0 +1,9 @@
+# Changelog
+
+## 1.0.0
+
+### Added
+- A big icon in the middle of your screen the moment a cooldown you tick is ready.
+- Quick and Long styles, each with its own size, time and sound, plus 15 sounds and a Master volume option.
+- Trinkets, potions, healthstones and bag items can pulse too.
+- Works alongside Forever Enhanced Cooldown Manager: only one pulse runs at a time.
