@@ -2,7 +2,8 @@
 // file once, in order, for Forever, by Squirt; the licence and packaging are
 // right; the pulse only hands cooldowns on (it never reads one's times, only
 // whether it's on hold) and never takes the mouse but for the box that
-// moves it; Blizzard's frames are never shown, hidden, moved or written on,
+// moves it; answers the game may keep secret are read with Open() first;
+// Blizzard's frames are never shown, hidden, moved or written on,
 // and no panel or game setting is touched; no text is ever run as code;
 // every name the addon puts in the game's global space is its own (FECP),
 // never Forever Enhanced Cooldown Manager's; that addon's saved settings are
@@ -150,6 +151,101 @@ test('the pulse hands cooldowns on, never reads one, and takes no mouse but to m
   assert.match(pulse, /mover = CreateFrame\("Frame", "FECPPulseMover", UIParent, "BackdropTemplate"\)[\s\S]*?mover:EnableMouse\(true\)/);
   assert.equal(count(pulse, /EnableMouse\(false\)/g), 4, 'the pulse, its icon, the watchers and their frame');
   assert.doesNotMatch(noComments(await read('Link.lua')), /EnableMouse\(true\)/, 'the link\'s watcher takes none either');
+});
+
+// Answers the game may keep secret in a fight are never compared, tested or
+// used in sums until Open() (or issecretvalue) says they can be read: a
+// secret compared errors in the game ("attempt to compare ... a secret
+// number value, while execution tainted by ..."). The mock game's secrets
+// catch most of this as the tests run (type() says what one stands for, so
+// a type check alone never gets past one), but Lua can't make
+// `secret == true` or `if secret then` error, so this reads it from the
+// source, as Forever Enhanced Cooldown Manager's rules do: after each answer
+// is taken, every comparison, test or sum with it within its function needs
+// an Open() of it first: on the same line, in the `if` it sits in, or in an
+// `if not Open(...) then return` before it. Item counts and cooldowns, worn
+// and usable items (Pulse.lua's Feed and PickBack, Spells.lua's Pick and
+// Carries), and the rest in case they're ever used.
+const SECRET_ANSWERS = ['GetInventoryItemCooldown', 'C_Item.GetItemCooldown', 'C_Item.GetItemCount', 'C_Item.IsUsableItem',
+  'C_Item.IsEquippedItem', 'C_Spell.IsSpellUsable', 'C_Spell.IsSpellInRange', 'UnitCanAttack', 'GetInventoryItemCount',
+  'UnitPower'];
+const escape = text => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const indent = line => line.match(/^\s*/)[0].length;
+// From line i to the end of its function, each compare, test or sum with
+// `name` needs an Open() of it first.
+function follow(lines, i, name, found) {
+  const v = escape(name);
+  // Compared, in a sum or joined, or tested (if x, not x, x and, x or).
+  const use = new RegExp(`(?<![\\w.:])${v}\\s*(==|~=|<=|>=|<|>|\\.\\.|[-+*/%^])|(==|~=|<=|>=|<|>|\\.\\.|[-+*/%^])\\s*${v}(?![\\w(])`
+    + `|\\bnot\\s+${v}\\b|(?<![\\w.:])${v}\\s+(and|or)\\b|\\b(if|elseif|while)\\s+${v}\\s+(then|do)\\b`);
+  const check = new RegExp(`(Open|issecretvalue)\\(${v}\\)`);
+  let always = false, block = -1; // guarded from here on; guarded while deeper than this
+  for (let j = i + 1; j < lines.length && !/^(end|function|local function)\b/.test(lines[j]); j++) {
+    const text = lines[j];
+    if (block >= 0 && text.trim() && indent(text) <= block) block = -1;
+    const at = text.search(use);
+    if (at >= 0 && !always && block < 0 && !check.test(text.slice(0, at + 1))) {
+      found.push(`line ${j + 1}: ${name} (${text.trim()})`);
+    }
+    if (check.test(text) && !/\bor\b/.test(text)) {
+      // Leaves early unless it's open: `if not Open(x) then return`, or
+      // `if not (Open(x) and ...) then` with a return in its block. Not
+      // `if not other and Open(x) and x == y then`: that tests other.
+      let exits = /\bthen\s+return\b/.test(text);
+      if (!exits && /\bthen\s*$/.test(text)) {
+        const body = [];
+        for (let k = j + 1; k < lines.length && (!lines[k].trim() || indent(lines[k]) > indent(text)); k++) body.push(lines[k]);
+        const first = body.find(line => line.trim());
+        const depth = first ? indent(first) : -1;
+        exits = body.some(line => line.trim() && indent(line) === depth && /^\s*return\b/.test(line));
+      }
+      if (/^\s*if not\s*(\(|(Open|issecretvalue)\()/.test(text) && exits) always = true;
+      else if (/^\s*if\b.*\bthen\s*$/.test(text)) block = indent(text);
+    }
+  }
+}
+// Every answer taken in this code (its comments and strings blanked), and
+// each unguarded use of one.
+function unguarded(source) {
+  const lines = codeOnly(source).split(/\r?\n/), found = [];
+  let taken = 0;
+  lines.forEach((line, i) => {
+    for (const api of SECRET_ANSWERS) {
+      const left = line.match(new RegExp(`((?:\\b\\w+\\s*,\\s*)*\\b\\w+)\\s*=(?!=)\\s*(?:[\\w.()" ,]+?\\s+and\\s+)?(?:\\w+\\.)?${escape(api)}\\(`));
+      if (!left) continue;
+      taken++;
+      for (const name of left[1].split(',').map(part => part.trim()).filter(part => part && part !== '_')) {
+        follow(lines, i, name, found);
+      }
+    }
+  });
+  return { found, taken };
+}
+
+test('answers the game may keep secret are read with Open() first', async () => {
+  let taken = 0;
+  const found = [];
+  for (const { name, source } of await addonCode()) {
+    const result = unguarded(source);
+    taken += result.taken;
+    found.push(...result.found.map(problem => `${name} ${problem}`));
+  }
+  // Pulse.lua: a trinket's and an item's cooldown, and a ticked item's
+  // count (PickBack); Spells.lua: counts and usable (Pick), counts and worn
+  // (Carries).
+  assert.ok(taken >= 7, `the answers found (${taken})`);
+  assert.deepEqual(found, [], 'compared or summed before Open()');
+  // The check finds what the mock game can't.
+  const sample = 'local function Lit(id)\n    local usable = C_Spell.IsSpellUsable(id)\n    return usable == true\nend\n';
+  assert.equal(unguarded(sample).found.length, 1, 'usable == true with no Open() first');
+  assert.equal(unguarded(sample.replace('return usable', 'return Open(usable) and usable')).found.length, 0, 'and fine with one');
+  const back = 'local function Back(id)\n    local count = C_Item.GetItemCount(id, false, true)\n'
+    + '    if type(count) == "number" and count > 0 then return true end\nend\n';
+  assert.equal(unguarded(back).found.length, 1, 'a count checked by type alone');
+  assert.equal(unguarded(back.replace('if type', 'if Open(count) and type')).found.length, 0, 'and fine with Open() first');
+  const early = 'local function Has(id)\n    local count = C_Item.GetItemCount(id)\n    if not Open(count) then return false end\n'
+    + '    return count > 0\nend\n';
+  assert.equal(unguarded(early).found.length, 0, 'fine after an early return');
 });
 
 // Blizzard's frames the addon could reach by name (the game's tooltip is

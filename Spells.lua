@@ -3,8 +3,10 @@
 -- and usable items in your bags. Ticks and styles store each entry's key (a
 -- spell name, "item:<id>", "slot:<n>" or "family:<name>"), so training a new
 -- rank, swapping a trinket or carrying a better potion carries on without
--- any change to what's saved. Read again as your spells, bags, gear and level
--- change (Pulse.lua), and as the /fecp window opens.
+-- any change to what's saved. Read when something wants it, once your
+-- spells, gear or level change or a loading screen ends (Pulse.lua), as the
+-- /fecp window opens, and as the pulse takes over from Forever Enhanced
+-- Cooldown Manager (S:Stale).
 local _, ns = ...
 
 local S = {}
@@ -213,7 +215,18 @@ local function ScanItems()
     end
 end
 
+-- The list is only read when something wants it: after your spellbook, gear
+-- or level change, a loading screen, a ticked bag item comes back, the /fecp
+-- window opens or the pulse takes over (S:Stale) it waits, and is read again
+-- the next time anything looks in it. With the pulse off (or running in Forever Enhanced
+-- Cooldown Manager) and /fecp shut, nothing does, so it's never read at all.
+-- Your bags changing alone doesn't mark it (unless /fecp is open, whose list
+-- shows them): the pulse looks at its items again itself (Pulse.lua,
+-- P:Restock). As Forever Enhanced Cooldown Manager's list does.
+local stale, reads = true, 0
+
 function S:Scan()
+    stale, reads = false, reads + 1
     wipe(list)
     wipe(byKey)
     ScanSpellbook()
@@ -221,11 +234,38 @@ function S:Scan()
     return list
 end
 
+local function Ready()
+    if stale then S:Scan() end
+end
+
+-- Something the list holds may have changed: it's read again when next wanted.
+function S:Stale()
+    stale = true
+end
+
+-- How many times the list has been read, and whether it may hold something
+-- new since the read-th time: read again since, or waiting to be.
+function S:Reads()
+    return reads
+end
+
+function S:Changed(read)
+    return stale or reads ~= read
+end
+
+-- The list, read again first if anything changed since.
+function S:Fresh()
+    Ready()
+    return list
+end
+
+-- The list as last read, even if something has changed since. For the tests.
 function S:List()
     return list
 end
 
 function S:Find(key)
+    Ready()
     return byKey[key]
 end
 

@@ -166,22 +166,34 @@ local function Watched(ns)
 end
 -- A trinket ticked and a bag item ticked but not carried; the window opened
 -- once and shut. Then, while the pulse runs elsewhere (nothing read here),
--- the trinket is swapped and the item picked up.
-local function Meanwhile(ns)
+-- the trinket is swapped and the item picked up. What the list holds is
+-- looked at as last read, without reading it (Find would read it first now
+-- it's out of date): the trinket's item, whether it has the bag item, and
+-- how many times it was read since the window shut. bagsOnly: the item
+-- picked up, the trinket left as it was (no gear change to mark the list
+-- out of date, only the takeover itself).
+local function Meanwhile(ns, bagsOnly)
     H.clock = H.clock + 5
     ns.SetPulsePick("slot:13", true)
     ns.SetPulsePick("item:9997", true)
     H.itemSpells[9997] = "Plain"
     ns.ShowWindow()
     FECPFrame:Hide()
-    H.worn[13] = 9998
-    Fire("PLAYER_EQUIPMENT_CHANGED")
+    local reads = ns.Spells:Reads()
+    if not bagsOnly then
+        H.worn[13] = 9998
+        Fire("PLAYER_EQUIPMENT_CHANGED")
+    end
     H.bag[1] = { itemID = 9997, hyperlink = "|cff|Hitem:9997|h[Plain Charm]|h|r", iconFileID = 555 }
     H.counts[9997] = 1
     Fire("BAG_UPDATE_DELAYED")
     H.Tick(ns)
-    local trinket = ns.Spells:Find("slot:13")
-    return tostring(trinket and trinket.itemID) .. " " .. tostring(ns.Spells:Find("item:9997") ~= nil)
+    local trinket, item
+    for _, entry in ipairs(ns.Spells:List()) do
+        if entry.key == "slot:13" then trinket = entry end
+        if entry.key == "item:9997" then item = entry end
+    end
+    return tostring(trinket and trinket.itemID) .. " " .. tostring(item ~= nil) .. " " .. (ns.Spells:Reads() - reads)
 end
 
 do
@@ -191,11 +203,25 @@ do
     H.worn[13] = 9999
     local ns = H.Load({ pulse = true })
     H.Tick(ns)
-    Equal(Meanwhile(ns), "9999 false", "while it runs there, the list here isn't read again")
+    Equal(Meanwhile(ns), "9999 false 0", "while it runs there, the list here isn't read again")
     Toggle(manager, false)
     Equal(Watched(ns), "item:9997=9997, slot:13=9998", "taking over: the trinket worn now and the item picked up are watched")
     Toggle(manager, false)
     Equal(Watched(ns), "item:9997=9997, slot:13=9998", "told again while it runs here: the same")
+    Equal(H.Problems(), "", "no errors")
+end
+
+do
+    -- Only your bags changed meanwhile: nothing marked the list out of date
+    -- but the takeover, which still reads it again first.
+    H.Environment()
+    local manager = NewManager(true)
+    H.worn[13] = 9999
+    local ns = H.Load({ pulse = true })
+    H.Tick(ns)
+    Equal(Meanwhile(ns, true), "9999 false 0", "a bag item picked up while it runs there: not read here")
+    Toggle(manager, false)
+    Equal(Watched(ns), "item:9997=9997, slot:13=9999", "taking over: the item picked up is watched")
     Equal(H.Problems(), "", "no errors")
 end
 
@@ -206,7 +232,7 @@ do
     H.worn[13] = 9999
     local ns = H.Load({ pulse = true })
     H.Tick(ns)
-    Equal(Meanwhile(ns), "9999 false", "1.5.0: while it runs there, the list here isn't read again")
+    Equal(Meanwhile(ns), "9999 false 0", "1.5.0: while it runs there, the list here isn't read again")
     ForeverEnhancedCooldownManagerDB.pulse = false
     H.Frame(1.1)
     Equal(Watched(ns), "item:9997=9997, slot:13=9998", "1.5.0 turned off: the trinket worn now and the item picked up are watched")

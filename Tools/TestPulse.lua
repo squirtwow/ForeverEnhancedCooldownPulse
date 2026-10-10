@@ -6,8 +6,10 @@
 -- bag items, to tick), how it hands the game's duration objects to Cooldown
 -- frames of its own without ever reading them, the pulse itself (its fade,
 -- growth, queue and sound), moving it, that everything on its page fits, its
--- profiles, and its settings over a reload. The same checks as Forever
--- Enhanced Cooldown Manager's own Cooldown pulse page has, for this addon.
+-- profiles, its settings over a reload, and how little each change does (a
+-- bag change only looks at the items again; the list is read once, by
+-- whatever wants it first). The same checks as Forever Enhanced Cooldown
+-- Manager's own Cooldown pulse page has, for this addon.
 -- Run with: fengari Tools/TestPulse.lua
 local H = assert(loadfile("Tools/Harness.lua"))()
 local S, Equal, Last, Fire, Note = H.S, H.Equal, H.Last, H.Fire, H.Note
@@ -520,18 +522,42 @@ do
     Equal(Rows(page):match("ITEMS.*"), "ITEMS | [x] Trinket 1: Lucky Charm trinket Quick | [x] Healing Potions in your bags Quick"
         .. " | [ ] Mana Potions in your bags Quick | [ ] Hearthstone in your bags Quick",
         "potions you carry and bag items with a use, listed from your bags, unticked")
+    -- Bag items aren't seen pulsing in game yet: their ticks say so.
+    -- Trinkets, healthstones and potions have been (in this addon, 1.0.0).
+    do
+        local trinketRow, potionRow = RowFor(page, "slot:13"), RowFor(page, "family:healing")
+        trinketRow.check:SetChecked(false)
+        potionRow.check:SetChecked(false)
+        Equal(Note(RowFor(page, "item:6948").check) .. " | " .. Note(RowFor(page, "family:mana").check) .. " | "
+            .. Note(trinketRow.check) .. " | " .. Note(potionRow.check),
+            "Tick to pulse when Hearthstone is ready. (Needs testing) | Tick to pulse when Mana Potions is ready."
+            .. " | Tick to pulse when Trinket 1: Lucky Charm is ready. | Tick to pulse when Healing Potions is ready.",
+            "bag items say Needs testing on their ticks; trinkets and potions don't")
+        trinketRow.check:SetChecked(true)
+        potionRow.check:SetChecked(true)
+    end
     RowFor(page, "item:6948").check:Click()
-    Equal(tostring(watchers["item:6948"] ~= nil) .. " " .. tostring(Profile("pulsePick")["item:6948"]), "true true", "ticked: watched")
-    -- Run out of it: gone. Carrying it again, with /fecp shut: read again, watched again.
+    Equal(tostring(watchers["item:6948"] ~= nil) .. " " .. tostring(Profile("pulsePick")["item:6948"]) .. " "
+        .. Note(RowFor(page, "item:6948").check), "true true Untick to leave Hearthstone out.", "ticked: watched, and Needs testing only on the tick")
+    -- Run out of it, /fecp open (its list shows your bags): read again, gone.
+    -- Carrying it again, with /fecp shut: read again, watched again.
     H.bag[1], H.counts[6948] = nil, 0
     Fire("BAG_UPDATE_DELAYED")
     H.Tick(ns)
     Equal(tostring(watchers["item:6948"]), "nil", "none left: not watched")
     w:Hide()
+    -- A count the game keeps secret is never compared: not read again yet.
+    local reads = ns.Spells:Reads()
+    H.counts[6948] = H.SECRET
+    Fire("BAG_UPDATE_DELAYED")
+    H.Tick(ns)
+    Equal(tostring(watchers["item:6948"]) .. " " .. (ns.Spells:Reads() - reads), "nil 0",
+        "a count the game keeps secret: never compared, not read again")
     H.bag[1], H.counts[6948] = { itemID = 6948, hyperlink = "|cffffffff|Hitem:6948::|h[Hearthstone]|h|r", iconFileID = 134414 }, 1
     Fire("BAG_UPDATE_DELAYED")
     H.Tick(ns)
-    Equal(tostring(watchers["item:6948"] ~= nil), "true", "back in your bags: watched again, the window shut")
+    Equal(tostring(watchers["item:6948"] ~= nil) .. " " .. (ns.Spells:Reads() - reads), "true 1",
+        "back in your bags: read again once, watched again, the window shut")
     w:Show()
     RowFor(page, "item:6948").check:Click()
     H.bag[1], H.counts[6948] = nil, 0
@@ -765,7 +791,7 @@ do
     Equal(P:BaseCooldown(999999), 0, "a spell the data doesn't cover, with no way to ask: none")
     _G.GetSpellBaseCooldown = function(id)
         if id == 999999 then return 45000, 1500 end
-        if id == 999998 then return H.SECRET end
+        if id == 999998 then return H.SECRETS.number end
         return 99000
     end
     Equal(string.format("%g %g %g", P:BaseCooldown(999999), P:BaseCooldown(999998), P:BaseCooldown(8921)), "45 0 0",
@@ -893,11 +919,14 @@ do
         " | true None of your spells has a cooldown of its own yet. New ones show here as you learn them."
         .. " | Nothing to pulse yet: tick some below.", "no cooldowns yet: the list says new ones show as you learn them")
     table.insert(H.book[2].items, { name = "Power Word: Shield", subName = "Rank 1", spellID = 17, iconID = 135940 })
+    local scans, redraws = H.Counting(learner.Spells, "Scan"), H.Counting(FECPFrame, "Refresh")
+    Fire("SPELLS_CHANGED")
     Fire("SPELLS_CHANGED")
     Equal(Rows(lp):find("Power Word", 1, true), nil, "not until the next frame")
     H.Tick(learner)
+    Equal(scans(true) .. " " .. redraws(true), "1 1", "two spellbook changes at once: one redraw, your spells read once, not again by the pulse")
     Equal(Rows(lp) .. " | " .. tostring(S[lp.empty].shown), "SPELLS | [ ] Power Word: Shield 4s Quick | false",
-        "learned: listed, unticked, Quick, its 4 s cooldown")
+        "learned: listed on the next frame, unticked, Quick, its 4 s cooldown")
     Equal(Watched(LP), 0, "and not watched until it's ticked")
     RowFor(lp, "Power Word: Shield").check:Click()
     local n, watched = LP:Watchers()
@@ -911,11 +940,13 @@ do
     H.Tick(learner)
     Equal(Rows(lp) .. " " .. watched["Power Word: Shield"].spellID, "SPELLS | [x] Power Word: Shield 4s Quick 592",
         "a new rank: still one row, still ticked, now watching the new rank")
-    -- Unlearned (talents reset): its row goes, and its old cooldown ending says nothing.
+    -- Unlearned (talents reset): its row and its watcher go on the next
+    -- frame, and its old cooldown ending says nothing.
     local old = watched["Power Word: Shield"].cooldown
     table.remove(H.book[2].items, 3)
     table.remove(H.book[2].items, 2)
     Fire("SPELLS_CHANGED")
+    Equal(tostring(Rows(lp):find("Power Word", 1, true) ~= nil) .. " " .. Watched(LP), "true 1", "unlearned: not gone until the next frame")
     H.Tick(learner)
     H.clock = H.clock + 5
     H.Done(old)
@@ -1006,5 +1037,210 @@ do
     Equal(H.Problems(), "", "no errors from trinkets and potions")
 end
 
+-- Lighter: your bags alone only look at the items again; the list is read once ---------------
+-- As Forever Enhanced Cooldown Manager 1.5.3's pulse, with no bars here.
+
+do
+    local hns = H.Start(nil)
+    local HP, list = hns.Pulse, hns.Spells
+    H.counts[118] = 2
+    hns.SetPulsePick("family:healing", true)
+    HP:Apply()
+    local count, watching = HP:Watchers()
+    Equal(count .. " " .. tostring(watching["family:healing"] and watching["family:healing"].itemID), "1 118",
+        "Healing Potions watched, by the Minor one you carry")
+    -- A bag change (looting, a potion): only the items looked at again.
+    local calls, scans = H.Counting(HP, "Watched", "Spells", "Items", "Rebuild", "Restock", "Feed"), H.Counting(list, "Scan")
+    Fire("BAG_UPDATE_DELAYED")
+    Fire("BAG_UPDATE_DELAYED")
+    local before = calls() .. " " .. scans()
+    H.Tick(hns)
+    Equal(before .. " | " .. calls(true) .. " | " .. scans(true), "0 0 0 0 0 0 0 | 0 0 0 0 1 1 | 0",
+        "two bag changes: on the next frame the items looked at again once and every watcher fed; nothing listed or read again")
+    -- Your last Minor drunk, a Lesser carried: the family moves on, and its
+    -- pulse with it, its icon too (no bars here to move it on).
+    local icon = C_Item.GetItemIconByID
+    C_Item.GetItemIconByID = function(id) if id == 858 then return 135929 end return icon(id) end
+    H.counts[118], H.counts[858] = 0, 1
+    scans = H.Counting(list, "Scan")
+    Fire("BAG_UPDATE_DELAYED")
+    H.Tick(hns)
+    local potion = watching["family:healing"]
+    Equal(potion.itemID .. " " .. potion.icon .. " " .. scans(true), "858 135929 0", "the family moves on to the potion you carry, not read again")
+    H.Done(potion.cooldown)
+    Equal(Now(HP) .. " " .. S[HP.frame.art.texture].texture, "family:healing quick 135929", "and pulses with the Lesser one's icon")
+    Finish(HP)
+    -- In a fight the game may keep your counts secret: never compared, the family kept as it is.
+    H.counts[223913] = H.SECRET
+    H.counts[858], H.counts[118] = 0, 1
+    Fire("BAG_UPDATE_DELAYED")
+    H.Tick(hns)
+    Equal(tostring(potion.itemID), "858", "a count the game keeps secret: the family stays as it was")
+    H.counts[223913] = nil
+    C_Item.GetItemIconByID = icon
+    -- Your spellbook (twice) and gear changed: read once, on the next frame.
+    calls, scans = H.Counting(HP, "Watched", "Rebuild"), H.Counting(list, "Scan")
+    Fire("SPELLS_CHANGED")
+    Fire("SPELLS_CHANGED")
+    Fire("PLAYER_EQUIPMENT_CHANGED")
+    before = calls() .. " " .. scans()
+    H.Tick(hns)
+    Equal(before .. " | " .. calls(true) .. " " .. scans(true) .. " " .. potion.itemID, "0 0 0 | 1 1 1 118",
+        "spells and gear changed: nothing until the next frame, then what's watched worked out again from one read")
+    -- With /fecp open its list shows your bags: a bag change reads them again,
+    -- what's watched is worked out again from that, and the window redrawn once.
+    hns.ShowWindow()
+    calls, scans = H.Counting(HP, "Restock", "Rebuild"), H.Counting(list, "Scan")
+    local redraws = H.Counting(FECPFrame, "Refresh")
+    Fire("BAG_UPDATE_DELAYED")
+    H.Tick(hns)
+    Equal(calls(true) .. " " .. scans(true) .. " " .. redraws(true), "1 1 1 1", "/fecp open, a bag change: read again once, worked out again, redrawn once")
+    FECPFrame:Hide()
+    -- A ticked bag item run out of while the list waits to be read again (the
+    -- window opening, or the pulse taking over, before the next frame): still
+    -- worked out again from the new read, so it's let go.
+    local hearth = { itemID = 6948, hyperlink = "|cffffffff|Hitem:6948::|h[Hearthstone]|h|r", iconFileID = 134414 }
+    H.bag[1], H.counts[6948] = hearth, 1
+    list:Stale()
+    hns.SetPulsePick("item:6948", true)
+    HP:Apply()
+    Equal(tostring(watching["item:6948"] ~= nil), "true", "a Hearthstone in your bags, ticked: watched")
+    H.bag[1], H.counts[6948] = nil, 0
+    Fire("BAG_UPDATE_DELAYED")
+    list:Stale()
+    H.Tick(hns)
+    Equal(tostring(watching["item:6948"]), "nil", "run out of, the list waiting to be read again: let go, as a full rebuild does")
+    -- Or read again since: the window opened before the next frame.
+    H.bag[1], H.counts[6948] = hearth, 1
+    Fire("BAG_UPDATE_DELAYED")
+    H.Tick(hns)
+    Equal(tostring(watching["item:6948"] ~= nil), "true", "back in your bags: watched again")
+    H.bag[1], H.counts[6948] = nil, 0
+    Fire("BAG_UPDATE_DELAYED")
+    hns.ShowWindow()
+    H.Tick(hns)
+    FECPFrame:Hide()
+    Equal(tostring(watching["item:6948"]), "nil", "run out of, the list read again since (the window opened): let go too")
+    -- Shut, run out of with nothing else changed: kept, but no pulse while you carry none.
+    H.bag[1], H.counts[6948] = hearth, 1
+    Fire("BAG_UPDATE_DELAYED")
+    H.Tick(hns)
+    H.bag[1], H.counts[6948] = nil, 0
+    scans = H.Counting(list, "Scan")
+    Fire("BAG_UPDATE_DELAYED")
+    H.Tick(hns)
+    H.clock = H.clock + 5
+    H.Done(watching["item:6948"].cooldown)
+    Equal(scans(true) .. " " .. tostring(HP:Showing()), "0 nil", "run out of, /fecp shut: not read again, and no pulse for it")
+    -- Then /fecp glanced at, still with no bag change: the list is read
+    -- again without it, while its watcher waits for your bags to change.
+    -- Its cooldown ending still says nothing: no longer listed, it's asked
+    -- about by its own ID.
+    local kept = watching["item:6948"]
+    hns.ShowWindow()
+    FECPFrame:Hide()
+    H.clock = H.clock + 5
+    H.Done(kept.cooldown)
+    Equal(tostring(kept == watching["item:6948"]) .. " " .. tostring(list:Find("item:6948")) .. " " .. tostring(HP:Showing()),
+        "true nil nil", "run out of, then /fecp glanced at: no longer listed, still watched, and still no pulse for it")
+    -- Or the list only waiting to be read again: the pulse's own look reads it, and the same.
+    list:Stale()
+    H.clock = H.clock + 5
+    H.Done(kept.cooldown)
+    Equal(tostring(HP:Showing()), "nil", "run out of, the list waiting to be read again: still no pulse for it")
+    hns.SetPulsePick("item:6948", false)
+    -- Every way of looking in the list reads it first while it's out of
+    -- date, so none can see an old one; the tests' own List never does.
+    local function FirstLook(look)
+        list:Stale()
+        local counted = H.Counting(list, "Scan")
+        look(list)
+        return counted(true)
+    end
+    Equal(FirstLook(function(s) s:Find("Barkskin") end) .. " " .. FirstLook(function(s) s:Fresh() end) .. " "
+        .. FirstLook(function(s) s:List() end), "1 1 0", "out of date: Find and Fresh read the list first; List doesn't")
+    list:Fresh()
+    local read = list:Reads()
+    local was = tostring(list:Changed(read))
+    list:Stale()
+    was = was .. " " .. tostring(list:Changed(read))
+    list:Fresh()
+    Equal(was .. " " .. tostring(list:Changed(read)) .. " " .. (list:Reads() - read) .. " " .. tostring(list:Changed(list:Reads())),
+        "false true true 1 false", "Changed: since a read, waiting to be read, or read again since; not since the newest")
+    -- Off, and /fecp shut: nothing watched, nothing listed, nothing read.
+    hns.Set("pulse", false)
+    HP:Apply()
+    calls, scans = H.Counting(HP, "Watched", "Spells", "Items"), H.Counting(list, "Scan")
+    for _, event in ipairs({ "BAG_UPDATE_DELAYED", "SPELLS_CHANGED", "PLAYER_EQUIPMENT_CHANGED", "PLAYER_LEVEL_UP",
+        "PLAYER_ENTERING_WORLD" }) do Fire(event) end
+    H.Tick(hns)
+    Equal((HP:Watchers()) .. " " .. calls(true) .. " " .. scans(true), "0 0 0 0 0", "the pulse off: nothing watched, nothing listed or read")
+    Equal(H.Problems(), "", "no errors from the lighter pulse")
+end
+
+-- A loading screen: the list read again once, an open /fecp redrawn -------------------------------
+-- As Forever Enhanced Cooldown Manager's list is after one.
+
+do
+    local hns = H.Start(nil)
+    local HP, list = hns.Pulse, hns.Spells
+    local scans = H.Counting(list, "Scan")
+    Fire("PLAYER_ENTERING_WORLD")
+    Fire("SPELLS_CHANGED")
+    local before = scans()
+    H.Tick(hns)
+    Equal(before .. " " .. scans(true), "0 1", "a loading screen and a spell change: once")
+    -- A ticked bag item run out of with /fecp shut is kept (only your bags
+    -- changed); a loading screen reads the list again and lets it go.
+    local _, watching = HP:Watchers()
+    H.bag[1], H.counts[6948] = { itemID = 6948, hyperlink = "|cffffffff|Hitem:6948::|h[Hearthstone]|h|r", iconFileID = 134414 }, 1
+    hns.SetPulsePick("item:6948", true)
+    Fire("BAG_UPDATE_DELAYED")
+    H.Tick(hns)
+    Equal(tostring(watching["item:6948"] ~= nil), "true", "a Hearthstone picked up, ticked: watched")
+    H.bag[1], H.counts[6948] = nil, 0
+    Fire("BAG_UPDATE_DELAYED")
+    H.Tick(hns)
+    local kept = tostring(watching["item:6948"] ~= nil)
+    scans = H.Counting(list, "Scan")
+    Fire("PLAYER_ENTERING_WORLD")
+    H.Tick(hns)
+    Equal(kept .. " " .. tostring(watching["item:6948"]) .. " " .. scans(true), "true nil 1",
+        "run out of, /fecp shut: kept until a loading screen, which reads the list once and lets it go")
+    -- /fecp open on the Cooldown pulse page: read again once, redrawn once.
+    hns.ShowWindow()
+    FECPFrame:Select("pulse")
+    scans = H.Counting(list, "Scan")
+    local redraws = H.Counting(FECPFrame, "Refresh")
+    Fire("PLAYER_ENTERING_WORLD")
+    H.Tick(hns)
+    Equal(scans(true) .. " " .. redraws(true), "1 1", "a loading screen with /fecp open: read again once, redrawn once")
+    FECPFrame:Hide()
+    -- The pulse off and /fecp shut: nothing read.
+    hns.Set("pulse", false)
+    HP:Apply()
+    scans = H.Counting(list, "Scan")
+    Fire("PLAYER_ENTERING_WORLD")
+    H.Tick(hns)
+    Equal(scans(true), "0", "a loading screen, the pulse off and /fecp shut: nothing read")
+    Equal(H.Problems(), "", "no errors from a loading screen")
+end
+
+-- The first read of the list: trinkets too, whatever looks first ---------------------------------
+
+do
+    H.Environment()
+    H.worn[13] = 9999
+    local off = H.Load({ pulse = false })
+    H.Tick(off)
+    local keys = {}
+    local reads = off.Spells:Reads()
+    for _, entry in ipairs(off.Pulse:Items()) do keys[#keys + 1] = entry.key end
+    Equal(reads .. " " .. table.concat(keys, ",") .. " " .. off.Spells:Reads(), "0 slot:13 1",
+        "off: never read at login; the items asked for first read it once, the trinket and all")
+    Equal(H.Problems(), "", "no errors from the first read")
+end
+
 Equal(H.Problems(), "", "no errors")
+Equal(table.concat(H.misused, ", "), "", "no secret misused anywhere")
 io.write("Pulse checks passed: " .. H.checks .. " assertions.\n")

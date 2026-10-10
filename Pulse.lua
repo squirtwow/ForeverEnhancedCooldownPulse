@@ -375,8 +375,7 @@ end
 -- cooldown, like Power Word: Shield's 4 seconds), by name, at your highest
 -- rank. New ones join as you learn them. Each is on once you tick it.
 function P:Spells()
-    local list = ns.Spells:List()
-    if #list == 0 then list = ns.Spells:Scan() end
+    local list = ns.Spells:Fresh()
     local found, picks = {}, ns.PulsePicks()
     for _, entry in ipairs(list) do
         if entry.kind == "spell" and entry.spellID then
@@ -424,14 +423,27 @@ function P:Items()
             slot = entry.kind == "slot" and entry.slot or nil, carried = carried, on = wanted }
     end
     for _, slot in ipairs(TRINKETS) do Take(ns.Spells:Find("slot:" .. slot)) end
-    local list = ns.Spells:List()
-    if #list == 0 then list = ns.Spells:Scan() end
+    local list = ns.Spells:Fresh()
     -- Families first, so a potion in your bags always finds its family's row.
     for _, entry in ipairs(list) do
         if entry.kind == "family" then Take(entry) end
     end
     for _, entry in ipairs(list) do Take(entry) end
     return found
+end
+
+-- A ticked bag item back in your bags after you ran out of it: the list is
+-- read again (only your bags changing doesn't read it, P:Restock).
+local function PickBack()
+    if not (P:On() and ns.Get("pulseItems")) then return false end
+    for key in pairs(ns.PulsePicks()) do
+        local id = tonumber(key:match("^item:(%d+)$"))
+        if id and not ns.Spells:Find(key) then
+            local count = C_Item.GetItemCount(id, false, true)
+            if Open(count) and type(count) == "number" and count > 0 then return true end
+        end
+    end
+    return false
 end
 
 -- Everything that pulses now: the spells ticked, then the items ticked.
@@ -502,10 +514,14 @@ end
 -- Watchers for what pulses now (none while it's off, or running in Forever
 -- Enhanced Cooldown Manager): kept for what still does, so a cooldown
 -- counting down carries on, let go for the rest, then every one fed.
+local built -- the read of your spells and items the watchers were last made from
+
 function P:Rebuild()
     local want = {}
+    built = nil
     if self:On() then
         for _, entry in ipairs(self:Watched()) do want[entry.key] = entry end
+        built = ns.Spells:Reads()
     end
     for key, watch in pairs(watchers) do
         if not want[key] then
@@ -525,6 +541,27 @@ function P:Rebuild()
         end
         watch.key, watch.icon = key, entry.icon
         watch.spellID, watch.itemID, watch.slot = entry.spellID, entry.itemID, entry.slot
+    end
+    self:Feed()
+end
+
+-- Your bags changed and nothing else: what's watched stays the same unless
+-- the list of your spells and items was read again since (or waits to be),
+-- so only the items are looked at again (a healthstone or potion family
+-- moves on to the one you carry, its icon with it), then every watcher fed.
+-- Your spells wait for your spellbook to change, or a tick. The same as
+-- Forever Enhanced Cooldown Manager's pulse, which moves a family on itself
+-- too, rather than leave it to its bars.
+function P:Restock()
+    if built == nil or ns.Spells:Changed(built) then return self:Rebuild() end
+    for key, watch in pairs(watchers) do
+        if watch.itemID and not watch.slot then
+            local entry = ns.Spells:Find(key)
+            if entry then
+                if entry.family then ns.Spells:Pick(entry) end
+                watch.icon, watch.itemID = entry.icon, entry.itemID
+            end
+        end
     end
     self:Feed()
 end
@@ -551,6 +588,8 @@ end
 -- it's off, the interface is hidden, it's just after a login, reload or
 -- loading screen, this one was only just told, or it's an item you carry
 -- none of now (unknown still pulses), or a trinket whose slot pulses for it.
+-- A bag item no longer listed (the list read again since its watcher was
+-- made, say as /fecp opened) is asked about by its own ID.
 -- Items sharing a cooldown pulse once: the second finds the first showing.
 function P:Done(watch)
     if not (watch and self:On()) then return end
@@ -559,7 +598,10 @@ function P:Done(watch)
     if watch.last and now - watch.last < self.AGAIN then return end
     watch.last = now
     if UIParent and not UIParent:IsVisible() then return end
-    if watch.itemID and not watch.slot and ns.Spells:Carries(ns.Spells:Find(watch.key)) == false then return end
+    if watch.itemID and not watch.slot
+        and ns.Spells:Carries(ns.Spells:Find(watch.key) or { kind = "item", itemID = watch.itemID }) == false then
+        return
+    end
     if watch.itemID and not watch.slot and SlotWatched(watch.itemID) then return end
     self:Queue(watch.icon, watch.shared and ("cd:" .. watch.shared) or watch.key, nil, self:StyleOf(watch.key))
 end
@@ -733,21 +775,25 @@ end
 local driver
 local work = {}
 
--- Done once on the next frame, however many events asked. Your spells, bags,
--- gear or level changed: the list is read again first (while it's on, or
--- the /fecp window shows it), and the window shows what's new.
+-- Done once on the next frame, however many events asked. Your spellbook,
+-- gear or level changed, a loading screen ended, or a ticked bag item is
+-- back: the list of your spells and items is noted as changed as the event
+-- comes, and read again once, by whatever wants it first (the pulse while
+-- it's on, the /fecp window), not by each. The window shows what's new. Only your bags
+-- changed: only the items are looked at again (P:Restock), unless the
+-- window is open, whose list shows what's in your bags.
 local function Work(self)
     self:SetScript("OnUpdate", nil)
-    local scan, rebuild, feed = work.scan, work.rebuild, work.feed
-    work.scan, work.rebuild, work.feed = nil, nil, nil
-    local open = ns.window ~= nil and ns.window:IsShown()
-    if scan and (P:On() or open) then ns.Spells:Scan() end
+    local scan, rebuild, bags, feed = work.scan, work.rebuild, work.bags, work.feed
+    work.scan, work.rebuild, work.bags, work.feed = nil, nil, nil, nil
     if rebuild then
         P:Rebuild()
+    elseif bags then
+        P:Restock()
     elseif feed then
         P:Feed()
     end
-    if scan and open then ns.window:Refresh() end
+    if scan and ns.window ~= nil and ns.window:IsShown() then ns.window:Refresh() end
 end
 
 local function Soon(what)
@@ -755,20 +801,38 @@ local function Soon(what)
     driver:SetScript("OnUpdate", Work)
 end
 
--- What each event asks for: the list read again (and so the watchers), or
--- only the watchers fed.
-local SCAN = { SPELLS_CHANGED = true, BAG_UPDATE_DELAYED = true, PLAYER_EQUIPMENT_CHANGED = true, PLAYER_LEVEL_UP = true,
-    PLAYER_LEVEL_CHANGED = true }
+-- A new spell learned, a new level or trinket: the list of your spells and
+-- items is read again before the pulse looks (ns.Spells:Stale, then read
+-- once by whatever wants it first), and the window shows what's new.
+local SCAN = { SPELLS_CHANGED = true, PLAYER_EQUIPMENT_CHANGED = true, PLAYER_LEVEL_UP = true, PLAYER_LEVEL_CHANGED = true }
 local FEED = { SPELL_UPDATE_COOLDOWN = true, BAG_UPDATE_COOLDOWN = true }
 
 local function OnEvent(_, event)
     if event == "PLAYER_ENTERING_WORLD" then
+        -- A loading screen: quiet for a moment, and the list read again
+        -- (anything may have changed meanwhile), as in Forever Enhanced
+        -- Cooldown Manager, where its bars' own events mark it.
         quietUntil = GetTime() + P.QUIET
+        ns.Spells:Stale()
         Soon("scan")
         Soon("rebuild")
     elseif event == "PLAYER_REGEN_DISABLED" then
         if P:Moving() then P:StopMove(false) end
+    elseif event == "BAG_UPDATE_DELAYED" then
+        if PickBack() then
+            ns.Spells:Stale()
+            Soon("scan")
+            Soon("rebuild")
+        elseif ns.window ~= nil and ns.window:IsShown() then
+            -- The window lists what's in your bags: read again for it.
+            ns.Spells:Stale()
+            Soon("scan")
+            Soon("bags")
+        else
+            Soon("bags")
+        end
     elseif SCAN[event] then
+        ns.Spells:Stale()
         Soon("scan")
         Soon("rebuild")
     elseif FEED[event] and next(watchers) then
@@ -787,6 +851,6 @@ function P:Start()
     driver:SetScript("OnEvent", OnEvent)
     self.driver = driver
     quietUntil = GetTime() + self.QUIET
-    Soon("scan")
+    -- The list starts out of date, so the first rebuild reads it (while it's on).
     Soon("rebuild")
 end

@@ -567,9 +567,9 @@ local function BuildWindow()
     window:Hide()
     -- Set before anything hooks these: setting a script later would drop the
     -- hooks the pages and the profile menu add. Opened, your spells and bags
-    -- are read again, so the list is up to date.
+    -- are read again as the page wants them, so the list is up to date.
     window:SetScript("OnShow", function(self)
-        if ns.Spells then ns.Spells:Scan() end
+        if ns.Spells then ns.Spells:Stale() end
         self:Refresh()
     end)
     window:SetScript("OnHide", function(self)

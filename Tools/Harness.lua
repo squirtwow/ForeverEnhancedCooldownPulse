@@ -5,7 +5,8 @@
 -- any key on one is a violation, and so is calling any method but a read
 -- (Get..., Is...) or HookScript. The game's tooltip is the one the addon
 -- may fill (the minimap button's). Secret values break on any use but being
--- handed on or asked issecretvalue. A cooldown's duration object breaks on
+-- handed on or asked issecretvalue, and type() says what each stands for,
+-- as the game's does. A cooldown's duration object breaks on
 -- any look inside. Violations are recorded even when the addon catches the
 -- error, and each test checks none were.
 --
@@ -15,8 +16,16 @@
 local H = {}
 
 H.checks = 0
+local IsSecret -- below, with the secrets
+-- Secrets match secrets: H.SECRET stands for any.
 function H.Equal(actual, expected, label)
     H.checks = H.checks + 1
+    if IsSecret(actual) or IsSecret(expected) then
+        if IsSecret(actual) and IsSecret(expected) and (rawequal(actual, expected) or rawequal(expected, H.SECRET)
+            or rawequal(actual, H.SECRET)) then return end
+        error(label .. ": expected " .. (IsSecret(expected) and "a secret" or tostring(expected)) .. ", got "
+            .. (IsSecret(actual) and "a secret" or tostring(actual)), 2)
+    end
     if actual ~= expected then
         error(label .. ": expected " .. tostring(expected) .. ", got " .. tostring(actual), 2)
     end
@@ -36,6 +45,9 @@ H.MANAGER = "ForeverEnhancedCooldownManager"
 -- Secret values -------------------------------------------------------------------------
 
 H.violations = {}
+-- Every secret misused this run, kept over each new environment (H.Start),
+-- for the suite's last check.
+H.misused = {}
 local function Violation(text)
     H.violations[#H.violations + 1] = text
 end
@@ -44,16 +56,44 @@ H.Violation = Violation
 local function Boom(what)
     return function()
         Violation("a secret value was " .. what)
+        H.misused[#H.misused + 1] = what
         error("secret value " .. what, 2)
     end
 end
-H.SECRET = setmetatable({}, { __index = Boom("indexed"), __newindex = Boom("written into"), __eq = Boom("compared"),
+-- Like the game's, type() says what a secret stands for (a number, a
+-- boolean or text), so a type check alone never gets past one: only
+-- issecretvalue (Open) does. H.SECRET is the tests' own, standing for any:
+-- the mock game hands back its typed twin (H.SECRETS.number, .boolean or
+-- .string) for what each API returns (H.Typed). Lua has no hook for
+-- `if secret then` or `secret == plain`, so those two can't be caught here
+-- (Tools/TestRules.mjs reads them from the source instead).
+local rawtype = type
+local kinds = setmetatable({}, { __mode = "k" })
+local META = { __index = Boom("indexed"), __newindex = Boom("written into"), __eq = Boom("compared"),
     __lt = Boom("compared"), __le = Boom("compared"), __add = Boom("used in arithmetic"), __sub = Boom("used in arithmetic"),
     __mul = Boom("used in arithmetic"), __div = Boom("used in arithmetic"), __mod = Boom("used in arithmetic"),
     __pow = Boom("used in arithmetic"), __unm = Boom("used in arithmetic"), __concat = Boom("concatenated"),
-    __len = Boom("measured"), __call = Boom("called"), __tostring = Boom("turned into text") })
+    __len = Boom("measured"), __call = Boom("called"), __tostring = Boom("turned into text") }
+local function Secret(kind)
+    local secret = setmetatable({}, META)
+    kinds[secret] = kind
+    return secret
+end
+H.SECRET = Secret("table")
+H.SECRETS = { number = Secret("number"), boolean = Secret("boolean"), string = Secret("string") }
 local SECRET = H.SECRET
-local function IsSecret(v) return rawequal(v, SECRET) end
+IsSecret = function(v) return rawtype(v) == "table" and kinds[v] ~= nil end
+H.IsSecret = IsSecret
+_G.type = function(v)
+    if rawtype(v) == "table" and kinds[v] then return kinds[v] end
+    return rawtype(v)
+end
+-- What an API hands back for a value a test set: H.SECRET as the kind it returns.
+local function Typed(kind, v)
+    if rawequal(v, SECRET) then return H.SECRETS[kind] end
+    return v
+end
+H.Typed = Typed
 
 -- A cooldown's duration object, as the game hands it over: secret in a
 -- fight, so the addon may pass it on but never look inside.
@@ -439,7 +479,8 @@ function H.Environment()
             return H.SEALED
         end,
         GetSpellCooldown = function(id)
-            return { isEnabled = not H.held[id], startTime = SECRET, duration = SECRET, modRate = SECRET }
+            local secret = H.SECRETS.number
+            return { isEnabled = not H.held[id], startTime = secret, duration = secret, modRate = secret }
         end,
         GetSpellTexture = function() return 1 end,
         GetSpellName = function() return nil end,
@@ -449,7 +490,8 @@ function H.Environment()
     -- (slot -> start, length, enable); bag items ({ itemID, hyperlink,
     -- iconFileID } in bag 0); how many of each you carry; every item's
     -- cooldown (one for all, as potions share theirs); items with a use
-    -- (item ID -> its spell); items worn.
+    -- (item ID -> its spell); items worn. Any of the times or counts can be
+    -- H.SECRET: each comes back as a secret of the kind the game's would be.
     H.worn, H.trinketCooldowns, H.bag, H.counts = {}, {}, {}, {}
     H.itemCooldown = { 0, 0, 1 }
     H.itemSpells = { [118] = "Healing Potion", [858] = "Healing Potion", [2455] = "Mana Potion", [5512] = "Healthstone",
@@ -464,7 +506,7 @@ function H.Environment()
     _G.GetInventoryItemTexture = function() return 777 end
     _G.GetInventoryItemCooldown = function(_, slot)
         local c = H.trinketCooldowns[slot] or { 0, 0, 1 }
-        return c[1], c[2], c[3]
+        return Typed("number", c[1]), Typed("number", c[2]), Typed("number", c[3])
     end
     _G.C_Container = {
         GetContainerNumSlots = function(bag) return bag == 0 and #H.bag or 0 end,
@@ -476,8 +518,10 @@ function H.Environment()
             local class = ({ [118] = { 0, 1 }, [117] = { 0, 5 }, [2698] = { 9, 0 } })[id] or { 15, 0 }
             return id, nil, nil, "", nil, class[1], class[2]
         end,
-        GetItemCooldown = function() return H.itemCooldown[1], H.itemCooldown[2], H.itemCooldown[3] end,
-        GetItemCount = function(id) return H.counts[id] or 0 end,
+        GetItemCooldown = function()
+            return Typed("number", H.itemCooldown[1]), Typed("number", H.itemCooldown[2]), Typed("boolean", H.itemCooldown[3])
+        end,
+        GetItemCount = function(id) return Typed("number", H.counts[id] or 0) end,
         IsUsableItem = function() return true, false end,
         IsEquippedItem = function(id) return id == H.worn[13] or id == H.worn[14] end,
         GetItemIconByID = function() return 888 end,
@@ -568,6 +612,31 @@ function H.Tick(ns)
     local driver = ns.Pulse.driver
     local work = S[driver].scripts.OnUpdate
     if work then work(driver, 0) end
+end
+
+-- Counts each call of these methods of the addon's (the pulse's, the list's,
+-- the window's) from now on, the addon's own calls among them. The function
+-- it gives back says how many, in the order named ("1 0 2"); given true, it
+-- also puts the methods back as they were.
+function H.Counting(object, ...)
+    local names, counts, old = { ... }, {}, {}
+    for _, name in ipairs(names) do
+        local real = object[name]
+        assert(type(real) == "function", "no method " .. name .. " to count")
+        counts[name], old[name] = 0, rawget(object, name)
+        rawset(object, name, function(...)
+            counts[name] = counts[name] + 1
+            return real(...)
+        end)
+    end
+    return function(restore)
+        local out = {}
+        for i, name in ipairs(names) do out[i] = counts[name] end
+        if restore then
+            for _, name in ipairs(names) do rawset(object, name, old[name]) end
+        end
+        return table.concat(out, " ")
+    end
 end
 
 -- The global names the addon has added since the environment was set up.

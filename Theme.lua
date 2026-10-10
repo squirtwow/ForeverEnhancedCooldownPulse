@@ -138,8 +138,12 @@ function T:ShowTip(owner, title, text, placement)
         self.tip = tip
     end
     tip.title:SetText(title:upper())
+    -- Wide enough for the title as well as the text: the addon's own name in
+    -- capitals is wider than the text column.
+    local width = math.max(TIP_WIDTH, math.ceil(tip.title:GetStringWidth() or 0))
+    tip.text:SetWidth(width)
     tip.text:SetText(text)
-    tip:SetSize(TIP_WIDTH + 24, 38 + (tip.text:GetStringHeight() or 12))
+    tip:SetSize(width + 24, 38 + (tip.text:GetStringHeight() or 12))
     tip.owner = owner
     tip:ClearAllPoints()
     if placement == "below" then

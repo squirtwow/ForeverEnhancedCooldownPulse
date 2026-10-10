@@ -17,7 +17,7 @@ const theirs = new URL('../../ForeverEnhancedCooldownManager/Ranks.lua', import.
 
 const HEADER = [
   '-- Copied from Forever Enhanced Cooldown Manager\'s Ranks.lua, which is',
-  '-- generated from Blizzard\'s game data for build 1.60.1.70170: every class',
+  '-- generated from Blizzard\'s game data for build 1.60.1.70338: every class',
   '-- spell and active racial with the spell IDs of all its ranks (ns.RANKS),',
   '-- and the base cooldown in seconds of every spell ID there that has one',
   '-- (ns.COOLDOWNS). Tools/TestRanksSync.mjs checks the copy and refreshes it.',

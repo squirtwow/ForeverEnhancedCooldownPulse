@@ -133,12 +133,12 @@ end
 
 -- The other addon changed: the pulse starts or stops here, and the window
 -- greys or frees the tick. Your spells and bags aren't read while the pulse
--- runs there (unless the window is open), so taking over reads them first:
--- a trinket swapped or an item picked up meanwhile is watched as it is now.
+-- runs there (unless the window is open), so taking over has them read again
+-- first: a trinket swapped or an item picked up meanwhile is watched as it is now.
 function L:Refresh()
     local was = self.last
     self.last = (self:Runner())
-    if self.last == ADDON and was ~= ADDON and ns.Spells then ns.Spells:Scan() end
+    if self.last == ADDON and was ~= ADDON and ns.Spells then ns.Spells:Stale() end
     if ns.Pulse and ns.Pulse.started then ns.Pulse:Apply() end
     if ns.window and ns.window:IsShown() then ns.window:Refresh() end
 end
