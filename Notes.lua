@@ -11,6 +11,18 @@ local T = ns.Theme
 -- first release: there's nothing new to a first install.
 ns.NOTES = {
     {
+        version = "1.0.2",
+        sections = {
+            { "Changed", {
+                "Lighter when your bags change, and spell data updated for Forever's latest build.",
+            } },
+            { "Fixed", {
+                "Potions move on to the one you carry, and an item you've run out of doesn't pulse.",
+                "Hover boxes widen to fit their title.",
+            } },
+        },
+    },
+    {
         version = "1.0.1",
         sections = {
             { "Added", {
