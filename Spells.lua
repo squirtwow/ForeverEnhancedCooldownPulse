@@ -69,6 +69,22 @@ local function Text(value)
     return type(value) == "string" and Open(value) and value ~= "" and value or nil
 end
 
+-- Names build 70425 gave spells (same spell IDs), as Forever Enhanced
+-- Cooldown Manager's Spells.lua lists them: a spell is ticked by its name
+-- alone, so one ticked under its old name matched nothing and stopped
+-- pulsing. Those ticks move over to the new name as the profiles load
+-- (Core.lua).
+local RENAMED = {
+    ["Read Ley Line"] = "Read Leyline",
+    ["Blessing of Salvation"] = "Salvation",
+    ["Greater Blessing of Salvation"] = "Mass Salvation",
+}
+
+-- A saved key's name now, for a spell that was renamed. Nil for any other key.
+function S:NewName(key)
+    return type(key) == "string" and RENAMED[key] or nil
+end
+
 local function Add(entry)
     if byKey[entry.key] then return byKey[entry.key] end
     byKey[entry.key] = entry
@@ -180,12 +196,28 @@ local function AddFamily(family)
     return entry
 end
 
--- Food, drink and recipes can be used but never have a cooldown to show.
+-- Food, drink and recipes can be used but have no cooldown to show: food
+-- and drink only wait out the game's short shared one (1 second; 10 for
+-- alcohol). But for these Food & Drink items, whose own item data sets a
+-- cooldown of their own (ItemEffect CoolDownMSec or CategoryCoolDownMSec
+-- over the 1.5 second global cooldown), each with a name in ItemSparse, in
+-- Blizzard's game tables for Forever build 1.60.1.70374 (read from the
+-- installed game client) and 1.60.1.70245 alike: Forever Enhanced Cooldown
+-- Manager's list, so Thistle Tea pulses in both. Tools/TestFoodCooldowns.mjs
+-- checks this list against those tables.
+local COOLDOWN_FOOD = {
+    [1072] = true, -- Full Moonshine: 120 s, the potions' category (4)
+    [6522] = true, -- Deviate Fish: 10 s of its own
+    [6657] = true, -- Savory Deviate Delight: 10 s of its own
+    [7676] = true, -- Thistle Tea: 300 s of its own, 120 s on category 1153
+    [11951] = true, -- Whipper Root Tuber: 120 s on category 1153
+}
 local RECIPE, CONSUMABLE, FOOD_AND_DRINK = 9, 0, 5
 local function NoCooldown(itemID)
     if not (C_Item and C_Item.GetItemInfoInstant) then return false end
     local _, _, _, _, _, classID, subclassID = C_Item.GetItemInfoInstant(itemID)
-    return classID == RECIPE or (classID == CONSUMABLE and subclassID == FOOD_AND_DRINK)
+    if classID == RECIPE then return true end
+    return classID == CONSUMABLE and subclassID == FOOD_AND_DRINK and not COOLDOWN_FOOD[itemID]
 end
 
 -- Your two trinket slots, whatever is in them, the healthstone and potion

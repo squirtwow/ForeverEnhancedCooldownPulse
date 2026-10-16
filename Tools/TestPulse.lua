@@ -79,7 +79,7 @@ end
 local function Watched(P)
     return (P:Watchers())
 end
-local SPELLS = "SPELLS | [ ] Barkskin 1 min Quick | [ ] Bash 1 min Quick | [ ] Overpower 5s Quick | [ ] Walk on Air 2 min Quick"
+local SPELLS = "SPELLS | [ ] Barkskin 1 min Quick | [ ] Bash 1 min Quick | [ ] Overpower 5s Quick | [ ] Walk on Air 1.5 min Quick"
 
 -- On from the start, with Forever Enhanced Cooldown Manager's defaults --------------------------
 
@@ -151,7 +151,7 @@ do
     for _, key in ipairs({ "Barkskin", "Bash", "Walk on Air" }) do RowFor(page, key).check:Click() end
     Equal(Saved("pulsePick") .. " | " .. S[page.status].text, "Barkskin,Bash,Walk on Air | 3 cooldowns pulse when they're ready.",
         "three ticked: saved by name in this character's profile, and counted")
-    Equal(Rows(page), "SPELLS | [x] Barkskin 1 min Quick | [x] Bash 1 min Quick | [ ] Overpower 5s Quick | [x] Walk on Air 2 min Quick",
+    Equal(Rows(page), "SPELLS | [x] Barkskin 1 min Quick | [x] Bash 1 min Quick | [ ] Overpower 5s Quick | [x] Walk on Air 1.5 min Quick",
         "ticked on the page")
     Equal(Note(RowFor(page, "Overpower").style.buttons[1]), "Once ticked, Overpower pulses Quick. Each style has its own size, time"
         .. " and sound, set under Edit above.", "an unticked row's switch says it pulses once ticked")
@@ -371,7 +371,7 @@ do
     Switch(bark, "long")
     Equal(Note(bark.style.buttons[1]):sub(1, 39), "Barkskin pulses Long. Click for Quick. ", "switched: says Long, and Quick goes back")
     Equal(Saved("pulseStyle") .. " " .. Profile("pulseStyle").Barkskin .. " | " .. Rows(page),
-        "Barkskin long | SPELLS | [x] Barkskin 1 min Long | [x] Bash 1 min Quick | [ ] Overpower 5s Quick | [x] Walk on Air 2 min Quick",
+        "Barkskin long | SPELLS | [x] Barkskin 1 min Long | [x] Bash 1 min Quick | [ ] Overpower 5s Quick | [x] Walk on Air 1.5 min Quick",
         "switched to Long: saved, the rest stay Quick")
     -- Its pulse: Long's own size, time and sound.
     H.clock = H.clock + 5
@@ -561,19 +561,25 @@ do
     w:Show()
     RowFor(page, "item:6948").check:Click()
     H.bag[1], H.counts[6948] = nil, 0
-    -- Food and recipes have a use but never a cooldown: not listed.
+    -- Food and recipes have a use but no cooldown to show: not listed. But
+    -- Thistle Tea (Food & Drink, with a cooldown of its own) is, as in
+    -- Forever Enhanced Cooldown Manager's pulse.
     H.bag[1] = { itemID = 117, hyperlink = "|cffffffff|Hitem:117::|h[Tough Jerky]|h|r", iconFileID = 1 }
     H.bag[2] = { itemID = 2698, hyperlink = "|cffffffff|Hitem:2698::|h[Recipe]|h|r", iconFileID = 1 }
-    H.counts[117], H.counts[2698] = 1, 1
+    H.bag[3] = { itemID = 7676, hyperlink = "|cffffffff|Hitem:7676::|h[Thistle Tea]|h|r", iconFileID = 1 }
+    H.counts[117], H.counts[2698], H.counts[7676] = 1, 1, 1
     Fire("BAG_UPDATE_DELAYED")
     H.Tick(ns)
-    Equal(tostring((RowFor(page, "item:117"))) .. " " .. tostring((RowFor(page, "item:2698"))), "nil nil", "food and recipes: not listed")
-    H.bag[1], H.bag[2] = nil, nil
+    local tea = RowFor(page, "item:7676")
+    Equal(tostring((RowFor(page, "item:117"))) .. " " .. tostring((RowFor(page, "item:2698"))) .. " | "
+        .. tostring(tea and S[tea.name].text), "nil nil | Thistle Tea",
+        "food and recipes: not listed; Thistle Tea, with a cooldown of its own, is")
+    H.bag[1], H.bag[2], H.bag[3] = nil, nil, nil
     Fire("BAG_UPDATE_DELAYED")
     H.Tick(ns)
     page.items:Click()
     Equal(tostring(watchers["slot:13"]) .. " " .. tostring(watchers["family:healing"]) .. " | " .. Rows(page),
-        "nil nil | SPELLS | [x] Barkskin 1 min Quick | [x] Bash 1 min Quick | [ ] Overpower 5s Quick | [x] Walk on Air 2 min Quick",
+        "nil nil | SPELLS | [x] Barkskin 1 min Quick | [x] Bash 1 min Quick | [ ] Overpower 5s Quick | [x] Walk on Air 1.5 min Quick",
         "Trinkets and potions too unticked: spells only")
     page.items:Click()
     Equal(Watched(P), 5, "ticked again: all five watched")
@@ -901,6 +907,43 @@ do
         .. Saved("pulsePick") .. " | " .. Saved("pulseStyle"), "Fine | nil nil nil | Barkskin | Barkskin",
         "broken profiles and characters dropped, only proper entries kept: spells by name, Long only as long")
     Equal(H.Problems(), "", "no errors from a reload")
+end
+
+-- Spells renamed by build 70425: ticks move over -----------------------------------------------------
+-- A spell is ticked by its name, and build 70425 renamed the Skyborne's Read
+-- Ley Line (Read Leyline) and the paladin's two Salvations. A tick or Long
+-- saved under an old name moves over to the new one in every profile as
+-- they load, so it pulses again; one ticked again since is kept once.
+
+do
+    H.Environment()
+    H.Book({ { name = "General", items = { { name = "Attack", spellID = 6603 },
+        { name = "Read Leyline", subName = "Racial", spellID = 1259705, iconID = 1 } } } })
+    local function Keys(set)
+        local keys = {}
+        for key, value in pairs(set) do keys[#keys + 1] = key .. "=" .. tostring(value) end
+        table.sort(keys)
+        return table.concat(keys, ",")
+    end
+    local saved = { profiles = {
+        Mine = { pulsePick = { ["Read Ley Line"] = true, Barkskin = true }, pulseStyle = { ["Read Ley Line"] = "long" } },
+        Other = { pulsePick = { ["Read Ley Line"] = true, ["Read Leyline"] = true, ["Greater Blessing of Salvation"] = true },
+            pulseStyle = { ["Blessing of Salvation"] = "long" } } },
+        chars = { ["Player-1-0001"] = "Mine" } }
+    local moved = H.Load(saved)
+    H.Tick(moved)
+    local profiles = ForeverEnhancedCooldownPulseDB.profiles
+    Equal(Keys(profiles.Mine.pulsePick) .. " | " .. Keys(profiles.Mine.pulseStyle) .. " | " .. Keys(profiles.Other.pulsePick) .. " | "
+        .. Keys(profiles.Other.pulseStyle), "Barkskin=true,Read Leyline=true | Read Leyline=long | Mass Salvation=true,Read Leyline=true"
+        .. " | Salvation=long", "every profile's ticks and Long under the new names; one ticked again since kept once")
+    local _, list = moved.Pulse:Watchers()
+    Equal(tostring(list["Read Leyline"] ~= nil) .. " " .. moved.Pulse:StyleOf("Read Leyline"), "true long",
+        "so Read Leyline pulses again, still Long")
+    Equal(H.Problems(), "", "no errors from the renamed ticks")
+    local db = ForeverEnhancedCooldownPulseDB
+    H.Start(db)
+    Equal(Keys(db.profiles.Mine.pulsePick) .. " | " .. Keys(db.profiles.Mine.pulseStyle), "Barkskin=true,Read Leyline=true | Read Leyline=long",
+        "loaded again: nothing left to move")
 end
 
 -- A new spell learned: listed on the next frame, unticked ------------------------------------------

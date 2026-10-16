@@ -17,7 +17,7 @@ const theirs = new URL('../../ForeverEnhancedCooldownManager/Ranks.lua', import.
 
 const HEADER = [
   '-- Copied from Forever Enhanced Cooldown Manager\'s Ranks.lua, which is',
-  '-- generated from Blizzard\'s game data for build 1.60.1.70338: every class',
+  '-- generated from Blizzard\'s game data for build 1.60.1.70425: every class',
   '-- spell and active racial with the spell IDs of all its ranks (ns.RANKS),',
   '-- and the base cooldown in seconds of every spell ID there that has one',
   '-- (ns.COOLDOWNS). Tools/TestRanksSync.mjs checks the copy and refreshes it.',
@@ -49,7 +49,7 @@ if (process.argv.includes('--write')) {
     assert.equal(lines.length, HEADER.length + ranks.length + cooldowns.length + 1, 'only the two tables');
     assert.ok(ranks.length > 500 && cooldowns.length > 400, 'both whole');
     // The spells the tests count on.
-    for (const [id, seconds] of [[22812, 60], [5211, 60], [7384, 5], [17, 4], [871, 900], [1856, 300], [8122, 30], [1259416, 120]]) {
+    for (const [id, seconds] of [[22812, 60], [5211, 60], [7384, 5], [17, 4], [871, 900], [1856, 300], [8122, 30], [1259416, 90]]) {
       assert.ok(cooldowns.includes(` [${id}]=${seconds},`), `${id}: ${seconds} s`);
     }
   });

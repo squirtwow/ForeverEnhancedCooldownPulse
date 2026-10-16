@@ -146,6 +146,24 @@ end
 -- (-> "long"; the rest are Quick).
 local PULSE_LISTS = { pulsePick = true, pulseStyle = "long" }
 
+-- A spell a later build renamed (Spells.lua S:NewName: Read Ley Line is Read
+-- Leyline since build 70425): a tick or Long saved under the old name moves
+-- over to the new one. Once moved, nothing is left to move.
+local function RenameSet(set)
+    local moves
+    for key in pairs(set) do
+        local now = ns.Spells and ns.Spells.NewName and ns.Spells:NewName(key)
+        if now then
+            moves = moves or {}
+            moves[key] = now
+        end
+    end
+    for key, now in pairs(moves or {}) do
+        if set[now] == nil then set[now] = set[key] end
+        set[key] = nil
+    end
+end
+
 -- A profile's lists, repaired in place.
 local function Lists(profile)
     for field, keep in pairs(PULSE_LISTS) do
@@ -153,6 +171,7 @@ local function Lists(profile)
         for key, value in pairs(profile[field]) do
             if type(key) ~= "string" or key == "" or value ~= keep then profile[field][key] = nil end
         end
+        RenameSet(profile[field])
     end
     return profile
 end

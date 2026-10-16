@@ -375,8 +375,8 @@ H.character = { guid = "Player-1-0001", name = "Zriel", realm = "Zephras", class
 
 -- The spellbook: lines of spells, each { name, spellID, subName, iconID,
 -- isPassive, future }. A druid with Moonfire (none), Barkskin and Bash (a
--- minute each), Walk on Air (a racial, two minutes) and Overpower (5 s),
--- a passive and a spell not learned yet.
+-- minute each), Walk on Air (a racial, a minute and a half since build
+-- 70425) and Overpower (5 s), a passive and a spell not learned yet.
 function H.Book(lines)
     H.book = lines or {
         { name = "General", items = { { name = "Attack", spellID = 6603 },
@@ -495,7 +495,7 @@ function H.Environment()
     H.worn, H.trinketCooldowns, H.bag, H.counts = {}, {}, {}, {}
     H.itemCooldown = { 0, 0, 1 }
     H.itemSpells = { [118] = "Healing Potion", [858] = "Healing Potion", [2455] = "Mana Potion", [5512] = "Healthstone",
-        [117] = "Food", [2698] = "Learning", [9999] = "Lucky", [9998] = "Charm", [6948] = "Hearthstone" }
+        [117] = "Food", [7676] = "Restore Energy", [2698] = "Learning", [9999] = "Lucky", [9998] = "Charm", [6948] = "Hearthstone" }
     H.itemNames = { [118] = "Minor Healing Potion", [2455] = "Minor Mana Potion", [9999] = "Lucky Charm", [9998] = "Second Charm",
         [9997] = "Plain Charm", [6948] = "Hearthstone" }
     _G.GetInventoryItemID = function(unit, slot) assert(unit == "player"); return H.worn[slot] end
@@ -515,7 +515,7 @@ function H.Environment()
     _G.C_Item = {
         GetItemSpell = function(id) return H.itemSpells[id] end,
         GetItemInfoInstant = function(id)
-            local class = ({ [118] = { 0, 1 }, [117] = { 0, 5 }, [2698] = { 9, 0 } })[id] or { 15, 0 }
+            local class = ({ [118] = { 0, 1 }, [117] = { 0, 5 }, [7676] = { 0, 5 }, [2698] = { 9, 0 } })[id] or { 15, 0 }
             return id, nil, nil, "", nil, class[1], class[2]
         end,
         GetItemCooldown = function()
