@@ -11,6 +11,19 @@ local T = ns.Theme
 -- first release: there's nothing new to a first install.
 ns.NOTES = {
     {
+        version = "1.0.3",
+        sections = {
+            { "Changed", {
+                "Spell data updated for Forever's latest patch.",
+                "The minimap button starts in a new spot, clear of our other addons' buttons. A spot you dragged it to stays.",
+            } },
+            { "Fixed", {
+                "Thistle Tea, and the few other foods and drinks with a cooldown, now pulse.",
+                "Read Leyline keeps its pulse tick after the game renamed it.",
+            } },
+        },
+    },
+    {
         version = "1.0.2",
         sections = {
             { "Changed", {

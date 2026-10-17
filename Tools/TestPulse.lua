@@ -530,15 +530,15 @@ do
         potionRow.check:SetChecked(false)
         Equal(Note(RowFor(page, "item:6948").check) .. " | " .. Note(RowFor(page, "family:mana").check) .. " | "
             .. Note(trinketRow.check) .. " | " .. Note(potionRow.check),
-            "Tick to pulse when Hearthstone is ready. (Needs testing) | Tick to pulse when Mana Potions is ready."
+            "Tick to pulse when Hearthstone is ready. (experimental) | Tick to pulse when Mana Potions is ready."
             .. " | Tick to pulse when Trinket 1: Lucky Charm is ready. | Tick to pulse when Healing Potions is ready.",
-            "bag items say Needs testing on their ticks; trinkets and potions don't")
+            "bag items are quietly experimental on their ticks; trinkets and potions aren't")
         trinketRow.check:SetChecked(true)
         potionRow.check:SetChecked(true)
     end
     RowFor(page, "item:6948").check:Click()
     Equal(tostring(watchers["item:6948"] ~= nil) .. " " .. tostring(Profile("pulsePick")["item:6948"]) .. " "
-        .. Note(RowFor(page, "item:6948").check), "true true Untick to leave Hearthstone out.", "ticked: watched, and Needs testing only on the tick")
+        .. Note(RowFor(page, "item:6948").check), "true true Untick to leave Hearthstone out.", "ticked: watched, and experimental only on the tick")
     -- Run out of it, /fecp open (its list shows your bags): read again, gone.
     -- Carrying it again, with /fecp shut: read again, watched again.
     H.bag[1], H.counts[6948] = nil, 0
@@ -897,7 +897,7 @@ do
         .. " " .. bad.Get("pulseLongTime") .. " " .. bad.Get("pulseLongSound") .. " | " .. bad.Get("pulseX") .. " " .. bad.Get("pulseY") .. " "
         .. tostring(bad.Get("pulseShadow")) .. " " .. tostring(bad.Get("pulseItems")) .. " " .. tostring(bad.Get("pulseMaster")) .. " | "
         .. bad.Get("accent") .. " " .. tostring(bad.Get("minimap")) .. " " .. bad.Get("minimapAngle"),
-        "true 272 10 80 135 thin none | 400 25 none | 0 0 true true false | purple true 285",
+        "true 272 10 80 135 thin none | 400 25 none | 0 0 true true false | purple true 288",
         "anything wrong in the saved settings reads as the default")
     local db = ForeverEnhancedCooldownPulseDB
     local names = {}

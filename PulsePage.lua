@@ -347,7 +347,7 @@ local function BuildList(window, page, inner)
         window:Hint(row.check, function()
             local name = row.name:GetText() or ""
             return row.check:GetChecked() and ("Untick to leave " .. name .. " out.")
-                or ("Tick to pulse when " .. name .. " is ready." .. (row.bags and " (Needs testing)" or ""))
+                or ("Tick to pulse when " .. name .. " is ready." .. (row.bags and " (experimental)" or ""))
         end)
         -- Quick or Long, on the right; its cooldown just before it.
         row.style = T:Segmented(row, Choices(ns.PULSE_STYLE_KEYS, ns.PULSE_STYLE_NAMES), SWITCH, function(key)

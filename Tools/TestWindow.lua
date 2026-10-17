@@ -605,12 +605,14 @@ do
     S[open].scripts.OnClick(open)
     Equal(tostring(S[w].shown), "true", "Open settings opens the window")
     w:Hide()
-    -- The minimap button: clear of Forever Enhanced Cooldown Manager's (225)
-    -- and the other addons' spots, bottom right of the bottom.
+    -- The minimap button: its spot in the layout Squirt's addons share,
+    -- bottom right of the bottom, clear of the others' buttons. The default
+    -- is only read, never saved until it's dragged.
     local button = FECPMinimapButton
     local at = S[button].points[1]
     Equal(table.concat({ at[1], tostring(at[2] == Minimap), at[3], ("%.1f"):format(at[4]), ("%.1f"):format(at[5]) }, " ") .. " "
-        .. ns.Get("minimapAngle") .. " " .. S[button].name, "CENTER true CENTER 19.2 -71.5 285 FECPMinimapButton", "at 285 degrees round the minimap")
+        .. ns.Get("minimapAngle") .. " " .. tostring(ForeverEnhancedCooldownPulseDB.minimapAngle) .. " " .. S[button].name,
+        "CENTER true CENTER 22.9 -70.4 288 nil FECPMinimapButton", "at 288 degrees round the minimap, the default not saved")
     S[GameTooltip].lines = nil
     S[button].scripts.OnEnter(button)
     local tip = ns.Theme.tip
@@ -673,6 +675,21 @@ do
     debug.close:Click()
     SlashCmdList.FECP("discord")
     Equal(tostring(S[FECPCopyLink].shown), "true", "/fecp discord")
+    Equal(H.Problems(), "", "no errors")
+end
+
+-- The minimap button where a player dragged it: kept after the default moved ---------------------
+
+do
+    -- Dragged before the default moved to 288: even onto the old default
+    -- (285), the saved spot is where it stays, and stays saved.
+    for _, case in ipairs({ { 285, "19.2 -71.5" }, { 100, "-12.8 72.9" } }) do
+        local angle, spot = case[1], case[2]
+        local ns = H.Start({ notesSeen = "dev", helpSeen = true, minimapAngle = angle })
+        local at = S[FECPMinimapButton].points[1]
+        Equal(("%.1f %.1f"):format(at[4], at[5]) .. " " .. ns.Get("minimapAngle") .. " " .. tostring(ForeverEnhancedCooldownPulseDB.minimapAngle),
+            spot .. " " .. angle .. " " .. angle, "dragged to " .. angle .. ": still there, and still saved")
+    end
     Equal(H.Problems(), "", "no errors")
 end
 

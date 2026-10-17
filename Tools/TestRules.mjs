@@ -8,8 +8,8 @@
 // every name the addon puts in the game's global space is its own (FECP),
 // never Forever Enhanced Cooldown Manager's; that addon's saved settings are
 // only read, in Link.lua alone; the art is right; no em dash in anything
-// players read; no function given twice in a file; and no other addon is
-// named anywhere.
+// players read; untested options marked the quiet "(experimental)" way; no
+// function given twice in a file; and no other addon is named anywhere.
 // Run with: node --test Tools/TestRules.mjs
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -439,6 +439,22 @@ test('no em dashes in anything players read', async () => {
     for (const { text, index } of literals(source)) if (escaped.test(text)) found.push(`${name}:${lineOf(source, index)}`);
   }
   assert.deepEqual(found, [], 'no em dash written as an escape');
+});
+
+// Untested options are marked the quiet way, " (experimental)", as in Forever
+// Enhanced Cooldown Manager (the user's call, 2026-10-17): never the old
+// "Needs testing" nor a capital "Experimental" in any string a player reads.
+test('untested options are marked the quiet way, never "Needs testing"', async () => {
+  const found = [];
+  let quiet = 0;
+  for (const { name, source } of await addonCode()) {
+    for (const { text, index } of literals(source)) {
+      if (/needs testing/i.test(text) || /Experimental|EXPERIMENTAL/.test(text)) found.push(`${name}:${lineOf(source, index)} ${text}`);
+      if (name === 'PulsePage.lua' && text === ' (experimental)') quiet++;
+    }
+  }
+  assert.deepEqual(found, [], 'the old wording, or a loud one');
+  assert.equal(quiet, 1, "the pulse page's bag items say it the quiet way");
 });
 
 // Other addons are never named, in the addon, its text or its tests. Their

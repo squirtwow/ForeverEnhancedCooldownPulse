@@ -68,13 +68,17 @@ ns.DEFAULTS = {
     pulseY = 0,
     accent = "purple", -- the /fecp window's accent colour
     minimap = true, -- the minimap button
-    minimapAngle = 285, -- where it sits round the minimap: degrees anticlockwise from the right
+    -- Where it sits round the minimap: degrees anticlockwise from the right.
+    -- 288 is its spot in the layout shared by Squirt's addons, clear of their
+    -- buttons (285 up to 1.0.2). Only read, never saved, until it's dragged,
+    -- so a spot a player dragged it to stays.
+    minimapAngle = 288,
     minimapFree = false, -- free-floating: anywhere on the screen, not on the minimap's edge
     minimapX = 0, -- where it sits while free-floating: from the middle of the screen
     minimapY = 0,
 }
 -- Number settings, each within its limits: min, max, default.
-ns.MINIMAP_ANGLE = { 0, 359, 285 }
+ns.MINIMAP_ANGLE = { 0, 359, 288 }
 ns.MINIMAP_PLACE = { -4000, 4000, 0 }
 ns.PULSE_SIZE = { 64, 512, 272 }
 ns.PULSE_TIME = { 3, 20, 10 } -- tenths of a second: 0.3 to 2 seconds
