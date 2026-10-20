@@ -76,6 +76,7 @@ ns.DEFAULTS = {
     minimapFree = false, -- free-floating: anywhere on the screen, not on the minimap's edge
     minimapX = 0, -- where it sits while free-floating: from the middle of the screen
     minimapY = 0,
+    updateNotice = true, -- a line in chat when a newer version is out (General page; SquirtVersions.lua)
 }
 -- Number settings, each within its limits: min, max, default.
 ns.MINIMAP_ANGLE = { 0, 359, 288 }
@@ -478,15 +479,39 @@ function ns.SetPulseStyle(key, style)
     ns.PulseStyles()[key] = style == "long" and "long" or nil
 end
 
+-- Update notices ---------------------------------------------------------------------
+-- "Tell me when an update is out" (General page): the shared update notices
+-- (SquirtVersions.lua, the same file in each of Squirt's addons on
+-- CurseForge) swap versions with other players in hidden addon messages and
+-- say once a session in chat when a newer one is out. A copy straight from
+-- the source ("dev") listens, but has no version to share or be told about.
+
+local function Notices()
+    local notices = _G.SquirtVersions
+    return type(notices) == "table" and type(notices.Register) == "function" and notices or nil
+end
+
+local function NoticeUpdates()
+    local notices = Notices()
+    if not notices then return end
+    notices:Register({ code = "CP", title = ns.TITLE, colour = "ffd100", version = ns.Version(),
+        IsOn = function() return ns.Get("updateNotice") == true end, Print = function(line) print(line) end })
+end
+
 -- Changes ---------------------------------------------------------------------------
 -- Everything lives in the saved settings, which the game writes at logout and
 -- on a reload; a change only needs the window redrawn. The pulse switched on
--- or off is told to Forever Enhanced Cooldown Manager too (Link.lua).
+-- or off is told to Forever Enhanced Cooldown Manager too (Link.lua), and the
+-- update notice's tick to the shared update notices.
 
 function ns.Set(key, value)
     if not db then return end
     db[key] = value
     if key == "pulse" and ns.Link then ns.Link:Changed() end
+    if key == "updateNotice" then
+        local notices = Notices()
+        if notices and type(notices.Refresh) == "function" then notices:Refresh() end
+    end
     if ns.window and ns.window:IsShown() then ns.window:Refresh() end
 end
 
@@ -591,6 +616,7 @@ local function Load()
     if ns.Pulse then ns.Pulse:Start() end
     if ns.MinimapButton then ns.MinimapButton:Start() end
     if ns.Notes then ns.Notes:Start() end
+    NoticeUpdates()
 end
 
 loader:SetScript("OnEvent", function(self, event, name)

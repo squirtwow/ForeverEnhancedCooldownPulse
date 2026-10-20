@@ -9,6 +9,7 @@
 ## OptionalDeps: ForeverEnhancedCooldownManager
 
 Core.lua
+SquirtVersions.lua
 Link.lua
 Theme.lua
 Ranks.lua

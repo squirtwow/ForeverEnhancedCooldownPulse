@@ -68,7 +68,8 @@ do
         .. S[w.nav.general.label].text .. " " .. S[w.nav.general].points[1][3] .. " | " .. S[w.navFrame].width,
         "general,pulse | Cooldown pulse -12 | General -44 | 150", "a short list: Cooldown pulse at the top, then General")
     Equal(Note(w.nav.pulse) .. " | " .. Note(w.nav.general), "A big icon in the middle of your screen when a cooldown is ready."
-        .. " | The tour, What's new, the Discord, the minimap button, this window's accent and Squirt's other addons.", "each says what it's for")
+        .. " | The tour, What's new, the Discord, the minimap button, this window's accent, update notices and Squirt's other addons.",
+        "each says what it's for")
     w.nav.general:Click()
     Equal(w.selected .. " " .. tostring(S[w.pages.general].shown) .. " " .. tostring(S[w.pages.pulse].shown) .. " "
         .. tostring(S[w.nav.general.fill].shown) .. " " .. tostring(S[w.nav.pulse.fill].shown), "general true false true false",
@@ -162,6 +163,39 @@ do
     -- About: which version this is.
     Equal(S[w.about].text, "Forever Enhanced Cooldown Pulse, a copy straight from the source. Made by Squirt. Type /fecp to open this window.",
         "the version, in plain words")
+    -- Tell me when an update is out, beside it: on from the start, in the
+    -- shared update notices (SquirtVersions.lua, tested on its own in
+    -- Tools/TestSquirtVersions.lua). A copy straight from the source listens,
+    -- with no version to share.
+    local notices = SquirtVersions
+    local tick = w.updateNotice
+    Equal(tostring(tick.checked) .. " " .. S[tick.text].text .. " | " .. Note(tick), "true Tell me when an update is out | A line in"
+        .. " chat, once a session, when a newer version is out. It uses a hidden chat channel, which takes one of your chat channel"
+        .. " slots.", "the tick, on, its note naming the channel slot")
+    local entry = notices.addons.CP
+    Equal(entry.title .. " | " .. entry.version .. " | " .. tostring(entry.IsOn()) .. " | " .. tostring(notices:Payload("H")),
+        "Forever Enhanced Cooldown Pulse | dev | true | nil", "in the shared update notices: dev, nothing to share")
+    tick:Click()
+    Equal(tostring(ns.Get("updateNotice")) .. " " .. tostring(ForeverEnhancedCooldownPulseDB.updateNotice) .. " " .. tostring(notices:Wanted())
+        .. " " .. tostring(tick.checked), "false false false false", "unticked: saved, and the update notices have nothing to do for it")
+    tick:Click()
+    Equal(tostring(ns.Get("updateNotice")) .. " " .. tostring(notices:Wanted()), "true true", "ticked again: back")
+    Equal(H.Problems(), "", "no errors")
+end
+
+-- With a version from the .toc: shared, and the line in chat (the hidden test).
+do
+    _G.GetAddOnMetadata = function(addon, field) return addon == H.ADDON and field == "Version" and "1.0.3" or nil end
+    H.Start({ notesSeen = "dev", helpSeen = true })
+    _G.GetAddOnMetadata = nil
+    local notices = SquirtVersions
+    Equal(notices:Payload("H"), "H1:CP=1.0.3", "its version shared")
+    local said = {}
+    local print = _G.print
+    _G.print = function(line) said[#said + 1] = line end
+    notices:Test("CP")
+    _G.print = print
+    Equal(said[1], "|cffffd100Forever Enhanced Cooldown Pulse|r 1.0.4 is out (you have 1.0.3). Update on CurseForge.", "the line in chat")
     Equal(H.Problems(), "", "no errors")
 end
 

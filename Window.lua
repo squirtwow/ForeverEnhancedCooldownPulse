@@ -226,10 +226,18 @@ local function BuildGeneral(window, page)
     chosen:SetPoint("TOPLEFT", 16 + #ns.ACCENT_KEYS * (SWATCH + SWATCH_GAP) + 2, -204)
     window.swatches, window.accentName = swatches, chosen
 
-    -- Which version this is, and how to open the window.
+    -- Which version this is, how to open the window, and whether to hear of
+    -- a newer one (Core.lua's update notices), beside it.
     T:Heading(page, "About"):SetPoint("TOPLEFT", 16, -236)
-    local about = Detail(page, "", 16, -256, 600)
+    local about = Detail(page, "", 16, -256, 340)
     window.about = about
+    local updates = T:Check(page, "Tell me when an update is out", function(self)
+        ns.Set("updateNotice", self:GetChecked())
+    end)
+    updates:SetPoint("TOPLEFT", 380, -252)
+    window:Hint(updates, "A line in chat, once a session, when a newer version is out. It uses a hidden chat channel,"
+        .. " which takes one of your chat channel slots.")
+    window.updateNotice = updates
 
     -- More from Squirt: the author's other addons, a card each.
     T:Heading(page, "More from Squirt"):SetPoint("TOPLEFT", 16, -296)
@@ -243,6 +251,7 @@ local function BuildGeneral(window, page)
         for _, card in ipairs(cards) do card:Refresh() end
         minimap:SetChecked(ns.Get("minimap"))
         free:SetChecked(ns.Get("minimapFree"))
+        updates:SetChecked(ns.Get("updateNotice"))
         news:SetUsable(#ns.NOTES > 0)
         local accent = ns.Get("accent")
         for _, swatch in ipairs(swatches) do
@@ -261,7 +270,7 @@ end
 -- What each page is for, in the footer on hover.
 local NAV_NOTES = {
     pulse = "A big icon in the middle of your screen when a cooldown is ready.",
-    general = "The tour, What's new, the Discord, the minimap button, this window's accent and Squirt's other addons.",
+    general = "The tour, What's new, the Discord, the minimap button, this window's accent, update notices and Squirt's other addons.",
 }
 
 local function NavItem(window, nav, key, label, y)

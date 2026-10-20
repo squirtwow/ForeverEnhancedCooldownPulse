@@ -297,7 +297,9 @@ test('no text is ever run as code', async () => {
 });
 
 // Its names in the game's global space: frames named FECP..., its saved
-// settings, its command, and the shared link. Never Forever Enhanced Cooldown
+// settings, its command, the shared link, and the shared update notices
+// (SquirtVersions, one table made by whichever of Squirt's addons loads
+// first; checked below). Never Forever Enhanced Cooldown
 // Manager's (FECM..., /ccm, /fecm), so the two never collide when both load.
 // More from Squirt (Window.lua) opens the author's other addons by the names
 // they give their command and settings window: read there, never written.
@@ -311,7 +313,9 @@ test('every name in the game\'s global space is the addon\'s own', async () => {
     }
     for (const match of code.matchAll(/\b(SLASH_\w+|SlashCmdList\s*\.\s*\w+|_G\s*\.\s*\w+\s*=(?!=)|FECM\w*|CCM\w*)/g)) {
       const text = match[1].replace(/\s+/g, '');
-      if (!['SLASH_FECP1', 'SlashCmdList.FECP', '_G.ForeverPulseLink='].includes(text)) found.push(`${name}:${lineOf(code, match.index)} ${text}`);
+      if (!['SLASH_FECP1', 'SlashCmdList.FECP', '_G.ForeverPulseLink=', '_G.SquirtVersions='].includes(text)) {
+        found.push(`${name}:${lineOf(code, match.index)} ${text}`);
+      }
     }
     for (const { text, index } of literals(source)) {
       if (name === 'Window.lua' && MORE_NAMES.includes(text)) continue;
@@ -549,4 +553,37 @@ test("Escape closes the windows through the game's own list", async () => {
   assert.equal(count(window, /ns\.CloseOnEscape\(window\)/g), 1, 'the /fecp window');
   assert.equal(count(notes, /ns\.CloseOnEscape\(window\)/g), 1, "What's new");
   assert.equal(count(debug, /table\.insert\(UISpecialFrames, "FECPDebugFrame"\)/g), 1, 'the debug report');
+});
+
+// The update notices (SquirtVersions.lua) are one file shared by Squirt's
+// addons on CurseForge: the same in every one beside this one (EraUI keeps it
+// in Core/), and so is its test but for the last line its runner reads. One
+// global, set only there; registered once, from Core.lua.
+const SHARED_HOMES = [['EraUI', 'Core/SquirtVersions.lua'], ['ForeverEnhancedCooldownManager', 'SquirtVersions.lua'],
+  ['ForeverEnhancedCooldownPulse', 'SquirtVersions.lua'], ['ForeverEnhancedPrivacy', 'SquirtVersions.lua'],
+  ['ForeverEnhancedCursor', 'SquirtVersions.lua']];
+test('the shared update notices: one global, the same file as in every other addon beside this one', async () => {
+  const { existsSync } = await import('node:fs');
+  const plain = text => text.replace(/\r\n/g, '\n');
+  const lastOff = text => plain(text).replace(/\n[^\n]*\n?$/, '');
+  const files = await addonCode();
+  assert.deepEqual(files.filter(({ code }) => /_G\.SquirtVersions\s*=/.test(code)).map(({ name }) => name), ['SquirtVersions.lua'],
+    'set in one file');
+  assert.deepEqual(files.filter(({ code }) => /SquirtVersions/.test(code)).map(({ name }) => name), ['Core.lua', 'SquirtVersions.lua'],
+    'used only from Core.lua');
+  assert.equal(count(noComments(await read('Core.lua')), /notices:Register\(\{ code = "CP"/g), 1, 'registered once');
+  const ours = plain(await read('SquirtVersions.lua'));
+  const test = lastOff(await read('Tools/TestSquirtVersions.lua'));
+  let compared = 0;
+  for (const [home, file] of SHARED_HOMES) {
+    if (home === 'ForeverEnhancedCooldownPulse' || !existsSync(new URL(`../../${home}/`, import.meta.url))) continue;
+    const theirs = new URL(`../../${home}/${file}`, import.meta.url);
+    assert.ok(existsSync(theirs), `${home} has the shared file`);
+    assert.equal(plain(await readFile(theirs, 'utf8')), ours, `${home}/${file} is the same file`);
+    const theirTest = new URL(`../../${home}/Tools/TestSquirtVersions.lua`, import.meta.url);
+    assert.ok(existsSync(theirTest), `${home} has the shared test`);
+    assert.equal(lastOff(await readFile(theirTest, 'utf8')), test, `${home}'s test is the same but its last line`);
+    compared++;
+  }
+  console.log(`compared with ${compared} other addons`);
 });

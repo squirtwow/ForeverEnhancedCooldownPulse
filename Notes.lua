@@ -11,6 +11,17 @@ local T = ns.Theme
 -- first release: there's nothing new to a first install.
 ns.NOTES = {
     {
+        version = "1.0.4",
+        sections = {
+            { "Added", {
+                "Tell me when an update is out (General page): a line in chat when a newer version is out. On by default.",
+            } },
+            { "Fixed", {
+                "Missing spells (Seal of Command, Holy Shock, Cold Blood, Innervate and more) can now be pulsed.",
+            } },
+        },
+    },
+    {
         version = "1.0.3",
         sections = {
             { "Changed", {

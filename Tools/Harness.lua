@@ -37,7 +37,7 @@ function H.True(value, label)
 end
 
 -- The addon's files, in the TOC's order (Tools/TestRules.mjs checks they match).
-H.FILES = { "Core.lua", "Link.lua", "Theme.lua", "Ranks.lua", "Spells.lua", "Pulse.lua", "PulsePage.lua", "ProfileMenu.lua",
+H.FILES = { "Core.lua", "SquirtVersions.lua", "Link.lua", "Theme.lua", "Ranks.lua", "Spells.lua", "Pulse.lua", "PulsePage.lua", "ProfileMenu.lua",
     "Window.lua", "Tour.lua", "MinimapButton.lua", "Notes.lua", "Debug.lua" }
 H.ADDON = "ForeverEnhancedCooldownPulse"
 H.MANAGER = "ForeverEnhancedCooldownManager"
@@ -422,7 +422,7 @@ local function BuildBlizzardFrames()
 end
 
 local ADDON_GLOBALS = { "^FECP", "^SLASH_FECP", "^ForeverEnhancedCooldownPulseDB$", "^ForeverPulseLink$",
-    "^ForeverEnhancedCooldownManagerDB$" }
+    "^ForeverEnhancedCooldownManagerDB$", "^SquirtVersions$" }
 local function Ours(key)
     if type(key) ~= "string" then return false end
     for _, pattern in ipairs(ADDON_GLOBALS) do
