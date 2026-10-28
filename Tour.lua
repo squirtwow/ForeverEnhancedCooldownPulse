@@ -9,8 +9,10 @@
 -- tour of just the steps an update added (Show me what's new). The ? in
 -- the window's title bar walks through the page showing: every step about
 -- it, from the tour, What's new and the page help (HELP), without leaving it.
+-- Its words are in the language showing: each step's in English, looked up
+-- as it shows.
 local _, ns = ...
-local T = ns.Theme
+local T, L = ns.Theme, ns.L
 
 local Tour = {}
 ns.Tour = Tour
@@ -20,9 +22,19 @@ local BOX_WIDTH, PAD = 290, 10
 local GAP = 14 -- between the part outlined and the box
 local OUTLINE = 4 -- how far outside that part the outline sits
 local CHECK_EVERY = .25 -- how often a Try it step looks to see if it's done
-local TOUR_NOTE = "Take the tour any time from the General page, or with /fecp tour."
-local NEWS_NOTE = "See it again any time from What's new, or with /fecp new."
-local PAGE_NOTE = "Click ? any time to see it again."
+
+-- Where to find it again, said as it ends: the page's walkthrough, What's
+-- new's tour or the full tour; done, after the last step.
+local function Again(page, update, done)
+    if page then
+        return done and L["That's this page. Click ? any time to see it again."] or L["Click ? any time to see it again."]
+    elseif update then
+        return done and L["That's what's new. See it again any time from What's new, or with /fecp new."]
+            or L["See it again any time from What's new, or with /fecp new."]
+    end
+    return done and L["That's the tour. Take the tour any time from the General page, or with /fecp tour."]
+        or L["Take the tour any time from the General page, or with /fecp tour."]
+end
 
 local window, box, outline
 local steps, index, started, welcome
@@ -33,6 +45,13 @@ local since = 0
 local function Value(value, ...)
     if type(value) == "function" then return value(...) end
     return value
+end
+
+-- A step's words: a function's come in the language showing already; text
+-- is looked up.
+local function Words(value, ...)
+    if type(value) == "function" then return value(...) end
+    return L[value]
 end
 
 -- How many cooldowns are ticked to pulse, for its Try it.
@@ -62,16 +81,16 @@ local STEPS = {
         text = function()
             local elsewhere = ns.Link:Elsewhere()
             if elsewhere then
-                return "Cooldown pulse is on in " .. elsewhere .. ", so it runs there and this tick waits."
-                    .. " Turn it off there to use this one."
+                return L["Cooldown pulse is on in %s, so it runs there and this tick waits."
+                    .. " Turn it off there to use this one."]:format(elsewhere)
             end
-            return "A big icon in the middle of your screen the moment a cooldown is ready, in a fight too."
-                .. " This tick turns it on or off."
+            return L["A big icon in the middle of your screen the moment a cooldown is ready, in a fight too."
+                .. " This tick turns it on or off."]
         end,
         try = "Try it: tick it.",
         already = function() return ns.Get("pulse") or ns.Link:Elsewhere() ~= nil end,
         alreadyText = function()
-            return ns.Link:Elsewhere() and "Nothing to do here while it runs there." or "It's already on."
+            return ns.Link:Elsewhere() and L["Nothing to do here while it runs there."] or L["It's already on."]
         end,
         watch = function() return ns.Get("pulse") and 1 or 0 end,
         -- The tick; the box under it, over the choices that follow.
@@ -164,6 +183,14 @@ local HELP = {
         target = function(w) return w.swatches[1], w.swatches[#w.swatches] end,
         side = "below",
     },
+    {
+        page = "general",
+        title = "Language",
+        text = "English or Simplified Chinese for this window, What's new and the addon's lines in chat. Auto follows"
+            .. " your game's language. It changes at once.",
+        target = function(w) return w.language end,
+        side = "below",
+    },
 }
 
 -- Where the box goes against what it points at, and its arrow on the box's
@@ -211,7 +238,7 @@ local function Build()
     outline:SetFrameLevel(window:GetFrameLevel() + 70)
     local line = Ring(outline, 2, 0, "OVERLAY")
     local soft = Ring(outline, 3, 3, "ARTWORK")
-    T:Paint(function(accent)
+    T:Paint(outline, function(accent)
         for _, strip in ipairs(line) do strip:SetVertexColor(accent[1], accent[2], accent[3], 1) end
         for _, strip in ipairs(soft) do strip:SetVertexColor(accent[1], accent[2], accent[3], .3) end
     end)
@@ -240,13 +267,13 @@ local function Build()
     box.text:SetWidth(BOX_WIDTH - 2 * PAD)
     box.arrow = box:CreateTexture(nil, "ARTWORK")
     box.arrow:SetTexture(ns.MEDIA .. "TourArrow.tga")
-    local nextButton = T:Button(box, "Next", 64, 20)
+    local nextButton = T:Button(box, L["Next"], 64, 20)
     nextButton:SetPoint("BOTTOMRIGHT", -PAD, PAD)
-    local back = T:Button(box, "Back", 64, 20)
+    local back = T:Button(box, L["Back"], 64, 20)
     back:SetPoint("RIGHT", nextButton, "LEFT", -6, 0)
-    local skip = T:Button(box, "Skip tour", 76, 20)
+    local skip = T:Button(box, L["Skip tour"], 76, 20)
     skip:SetPoint("BOTTOMLEFT", PAD, PAD)
-    T:Paint(function(accent)
+    T:Paint(box, function(accent)
         box:SetBackdropBorderColor(accent[1], accent[2], accent[3], 1)
         box.arrow:SetVertexColor(accent[1], accent[2], accent[3], 1)
         nextButton:SetBackdropBorderColor(accent[1], accent[2], accent[3], 1)
@@ -256,7 +283,7 @@ local function Build()
     end)
     back:SetScript("OnClick", function() Tour:Back() end)
     skip:SetScript("OnClick", function()
-        local note = here and PAGE_NOTE or news and NEWS_NOTE or TOUR_NOTE
+        local note = Again(here, news)
         Tour:Stop()
         window:Say(note)
         window:Refresh()
@@ -339,19 +366,19 @@ local function Show(i)
     elseif step.page then
         window:Select(step.page)
     end
-    local text = Value(step.text, window)
+    local text = Words(step.text, window)
     local already = step.already and step.already()
     if step.try then
-        text = text .. "\n\n|cff" .. T:Hex(T:Accent()) .. (already and Value(step.alreadyText, window) or step.try) .. "|r"
+        text = text .. "\n\n|cff" .. T:Hex(T:Accent()) .. (already and Words(step.alreadyText, window) or L[step.try]) .. "|r"
     end
-    box.title:SetText(step.title:upper())
-    box.count:SetText(i .. " of " .. #steps)
+    box.title:SetText(L[step.title]:upper())
+    box.count:SetText(L["%d of %d"]:format(i, #steps))
     box.count:Show()
     box.text:SetText(text)
     box.back:SetShown(i > 1)
     box.next:SetWidth(64)
-    box.next:SetLabel(i == #steps and "Done" or "Next")
-    box.skip:SetLabel("Skip tour")
+    box.next:SetLabel(i == #steps and L["Done"] or L["Next"])
+    box.skip:SetLabel(L["Skip tour"])
     started = step.watch and not already and step.watch() or nil
     since = 0
     Fit()
@@ -450,13 +477,13 @@ end
 function Tour:Welcome()
     if not Ready() then return end
     steps, index, started, welcome, news, here = nil, nil, nil, true, nil, nil
-    box.title:SetText("WELCOME")
+    box.title:SetText(L["Welcome"]:upper())
     box.count:Hide()
-    box.text:SetText("New to " .. ns.TITLE .. "? A quick tour shows you the basics, a page at a time. It takes about a minute.")
+    box.text:SetText(L["New to %s? A quick tour shows you the basics, a page at a time. It takes about a minute."]:format(ns.TITLE))
     box.back:Hide()
     box.next:SetWidth(100)
-    box.next:SetLabel("Take the tour")
-    box.skip:SetLabel("Skip")
+    box.next:SetLabel(L["Take the tour"])
+    box.skip:SetLabel(L["Skip"])
     Fit()
     Point({})
     box:Show()
@@ -466,8 +493,7 @@ end
 function Tour:Next()
     if not (steps and index) then return end
     if index < #steps then return Show(index + 1) end
-    local done = here and "That's this page. " .. PAGE_NOTE or news and "That's what's new. " .. NEWS_NOTE
-        or "That's the tour. " .. TOUR_NOTE
+    local done = Again(here, news, true)
     self:Stop()
     window:Say(done)
     window:Refresh()
@@ -487,6 +513,14 @@ end
 
 function Tour:Active()
     return box ~= nil and box:IsShown()
+end
+
+-- A new language (Window.lua ns.Remake): the tour ends, and is made again,
+-- on the new window, as it next starts. The old box goes with the old
+-- window, its painters too.
+function Tour:Forget()
+    self:Stop()
+    window, box, outline = nil, nil, nil
 end
 
 -- Called whenever the window changes page: the outline only shows on the page

@@ -124,10 +124,12 @@ function L:Elsewhere()
     return nil
 end
 
--- The on/off tick's hover note while it's greyed out, else nil.
+-- The on/off tick's hover note while it's greyed out, else nil: in the
+-- language showing (ns.L; this file's own L is the link), the other addon
+-- by its own name.
 function L:Note()
     local name = self:Elsewhere()
-    if name then return "Cooldown pulse is on in " .. name .. ". Turn it off there to use this one." end
+    if name then return ns.L["Cooldown pulse is on in %s. Turn it off there to use this one."]:format(name) end
     return nil
 end
 

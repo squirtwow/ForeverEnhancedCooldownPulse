@@ -36,6 +36,7 @@ function T:Zoom(texture)
     texture:SetTexCoord(T.ZOOM[1], T.ZOOM[2], T.ZOOM[3], T.ZOOM[4])
 end
 
+-- Each name in English, looked up in ns.L where it shows.
 T.ACCENTS = {
     orange = { name = "Orange", colour = { .88, .47, .16 } },
     blue = { name = "Blue", colour = { .24, .55, .88 } },
@@ -61,17 +62,43 @@ function T:Hex(colour)
     return ("%02x%02x%02x"):format(Byte(colour[1]), Byte(colour[2]), Byte(colour[3]))
 end
 
+-- Painters by the frame each paints in: the one at the top of its region's
+-- parents, under UIParent (the window, What's new, the tooltip). A window
+-- made again in a new language forgets its old one's (T:Forget), so an
+-- accent change never repaints a window nobody sees again.
 local painters = {}
 
--- Runs now and again whenever the accent changes.
-function T:Paint(painter)
-    painters[#painters + 1] = painter
+local function Top(region)
+    while region do
+        local parent = region:GetParent()
+        if parent == nil or parent == UIParent then return region end
+        region = parent
+    end
+end
+
+-- Runs now and again whenever the accent changes: painter(accent), for a
+-- piece of region drawn in the accent.
+function T:Paint(region, painter)
+    local top = Top(region) or T
+    local list = painters[top]
+    if not list then
+        list = {}
+        painters[top] = list
+    end
+    list[#list + 1] = painter
     painter(self:Accent())
+end
+
+-- A frame hidden for good (ns.Remake): its painters go with it.
+function T:Forget(top)
+    painters[top] = nil
 end
 
 function T:Repaint()
     local accent = self:Accent()
-    for _, painter in ipairs(painters) do painter(accent) end
+    for _, list in pairs(painters) do
+        for _, painter in ipairs(list) do painter(accent) end
+    end
 end
 
 -- Pieces -----------------------------------------------------------------------------
@@ -104,14 +131,14 @@ end
 function T:Fade(parent, strength)
     local fade = parent:CreateTexture(nil, "BORDER")
     fade:SetTexture(FLAT)
-    self:Paint(function(accent) Gradient(fade, accent, strength) end)
+    self:Paint(fade, function(accent) Gradient(fade, accent, strength) end)
     return fade
 end
 
 -- A page's main box (its list), outlined in the accent so it stands out.
 function T:Box(frame)
     self:Flat(frame, T.PANEL, T.BORDER)
-    self:Paint(function(accent) frame:SetBackdropBorderColor(accent[1], accent[2], accent[3], 1) end)
+    self:Paint(frame, function(accent) frame:SetBackdropBorderColor(accent[1], accent[2], accent[3], 1) end)
 end
 
 -- A tooltip in the addon's own look, as the Discord box: a dark box edged in
@@ -128,7 +155,7 @@ function T:ShowTip(owner, title, text, placement)
         tip:SetClampedToScreen(true)
         tip:EnableMouse(false)
         self:Flat(tip, T.BG, T.CONTROL_BORDER)
-        self:Paint(function(accent) tip:SetBackdropBorderColor(accent[1], accent[2], accent[3], 1) end)
+        self:Paint(tip, function(accent) tip:SetBackdropBorderColor(accent[1], accent[2], accent[3], 1) end)
         tip.title = self:Heading(tip, "")
         tip.title:SetPoint("TOPLEFT", 12, -10)
         tip.text = self:Text(tip, "GameFontHighlightSmall")
@@ -185,7 +212,7 @@ function T:TitleBar(window, height)
     header.icon = icon
     local title = self:Text(header, "GameFontNormalLarge")
     title:SetPoint("LEFT", logo, "RIGHT", 8, 0)
-    self:Paint(function(accent)
+    self:Paint(title, function(accent)
         title:SetText("Forever |cff" .. self:Hex(accent) .. "Enhanced|r Cooldown Pulse")
     end)
     local close = self:Square(header, "X")
@@ -208,7 +235,7 @@ end
 function T:Heading(parent, label)
     local text = self:Text(parent, "GameFontNormalSmall")
     text:SetText(label:upper())
-    self:Paint(function(accent) text:SetTextColor(accent[1], accent[2], accent[3]) end)
+    self:Paint(text, function(accent) text:SetTextColor(accent[1], accent[2], accent[3]) end)
     return text
 end
 
@@ -225,7 +252,7 @@ function T:Check(parent, label, onClick)
     fill:SetPoint("TOPLEFT", 2, -2)
     fill:SetPoint("BOTTOMRIGHT", -2, 2)
     fill:Hide()
-    self:Paint(function(accent) Colour(fill, accent) end)
+    self:Paint(fill, function(accent) Colour(fill, accent) end)
     check.box, check.fill = box, fill
     if label then
         check.text = self:Text(check, "GameFontHighlight")
@@ -286,7 +313,7 @@ function T:Square(parent, label, accented)
     local button = self:Button(parent, label, 18, 18)
     button.label:SetFontObject("GameFontHighlight")
     if accented then
-        self:Paint(function(accent) button.label:SetTextColor(accent[1], accent[2], accent[3]) end)
+        self:Paint(button, function(accent) button.label:SetTextColor(accent[1], accent[2], accent[3]) end)
     end
     -- Greyed out and unclickable while it doesn't apply; still says why on hover.
     function button:SetUsable(usable)
@@ -298,17 +325,19 @@ function T:Square(parent, label, accented)
     return button
 end
 
--- Joined buttons; the chosen one fills with the accent.
+-- Joined buttons; the chosen one fills with the accent. Each as wide as the
+-- next, or as wide as an item says (width), for a longer label among short ones.
 function T:Segmented(parent, items, width, onSelect)
     local bar = CreateFrame("Frame", nil, parent, "BackdropTemplate")
     bar:SetSize(width, 20)
     self:Flat(bar, T.FIELD, T.CONTROL_BORDER)
     bar.buttons = {}
-    local each = (width - 2) / #items
+    local each, x = (width - 2) / #items, 1
     for i, item in ipairs(items) do
         local button = CreateFrame("Button", nil, bar)
-        button:SetSize(each, 18)
-        button:SetPoint("LEFT", 1 + (i - 1) * each, 0)
+        button:SetSize(item.width or each, 18)
+        button:SetPoint("LEFT", x, 0)
+        x = x + (item.width or each)
         button.fill = button:CreateTexture(nil, "BACKGROUND")
         button.fill:SetAllPoints()
         button.label = self:Text(button, "GameFontHighlightSmall")
@@ -340,7 +369,7 @@ function T:Segmented(parent, items, width, onSelect)
         end
         self:SetAlpha(usable and 1 or .35)
     end
-    self:Paint(function() if bar.selected then bar:SetSelected(bar.selected) end end)
+    self:Paint(bar, function() if bar.selected then bar:SetSelected(bar.selected) end end)
     return bar
 end
 
@@ -388,7 +417,7 @@ function T:Slider(parent, label, limits, step, width, onChange, labelWidth)
     local fill = track:CreateTexture(nil, "ARTWORK")
     fill:SetPoint("LEFT")
     fill:SetHeight(4)
-    self:Paint(function(accent) Colour(fill, accent) end)
+    self:Paint(fill, function(accent) Colour(fill, accent) end)
     local thumb = track:CreateTexture(nil, "OVERLAY")
     thumb:SetSize(10, 10)
     Colour(thumb, T.TEXT)
@@ -452,7 +481,7 @@ function T:Scroll(parent, width)
     thumb:EnableMouse(true)
     thumb.texture = thumb:CreateTexture(nil, "ARTWORK")
     thumb.texture:SetAllPoints()
-    self:Paint(function(accent) Colour(thumb.texture, accent) end)
+    self:Paint(thumb, function(accent) Colour(thumb.texture, accent) end)
     scroll.thumb = thumb
 
     -- Until the game has measured the list there's nothing to scroll; this

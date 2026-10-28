@@ -3,6 +3,7 @@
 -- lives in its own file and starts from here once the saved settings are
 -- loaded.
 local ADDON, ns = ...
+local L = ns.L
 
 ns.ADDON = ADDON
 ns.TITLE = "Forever Enhanced Cooldown Pulse"
@@ -77,6 +78,7 @@ ns.DEFAULTS = {
     minimapX = 0, -- where it sits while free-floating: from the middle of the screen
     minimapY = 0,
     updateNotice = true, -- a line in chat when a newer version is out (General page; SquirtVersions.lua)
+    language = "auto", -- the words the addon shows (General page; Locale.lua): the game's, English or Simplified Chinese
 }
 -- Number settings, each within its limits: min, max, default.
 ns.MINIMAP_ANGLE = { 0, 359, 288 }
@@ -92,7 +94,8 @@ local NUMBERS = { minimapAngle = ns.MINIMAP_ANGLE, pulseSize = ns.PULSE_SIZE, pu
     pulseLongSize = ns.PULSE_LONG_SIZE, pulseLongTime = ns.PULSE_LONG_TIME, pulseSeeThrough = ns.PULSE_SEE_THROUGH,
     pulseGrow = ns.PULSE_GROW, pulseX = ns.PULSE_PLACE, pulseY = ns.PULSE_PLACE, minimapX = ns.MINIMAP_PLACE,
     minimapY = ns.MINIMAP_PLACE }
--- Choices a text setting may hold.
+-- Choices a text setting may hold. The names (here and the accents' in
+-- Theme.lua) stay in English, as keys: each is looked up in ns.L where it shows.
 ns.ACCENT_KEYS = { "orange", "blue", "teal", "purple", "green" }
 ns.PULSE_BORDER_KEYS = { "none", "thin", "thick" }
 ns.PULSE_BORDER_NAMES = { none = "None", thin = "Thin", thick = "Thick" }
@@ -103,8 +106,9 @@ ns.PULSE_SOUND_NAMES = { none = "None", chime = "Chime", bell = "Bell", trill = 
     warhorn = "War horn", fanfare = "Fanfare", gold = "Gold", jackpot = "Jackpot bell", anvil = "Anvil" }
 ns.PULSE_STYLE_KEYS = { "quick", "long" }
 ns.PULSE_STYLE_NAMES = { quick = "Quick", long = "Long" }
-local CHOICES = { accent = {}, pulseBorder = {}, pulseSound = {}, pulseLongSound = {} }
+local CHOICES = { accent = {}, pulseBorder = {}, pulseSound = {}, pulseLongSound = {}, language = {} }
 for _, key in ipairs(ns.ACCENT_KEYS) do CHOICES.accent[key] = true end
+for _, key in ipairs(ns.LANGUAGE_KEYS) do CHOICES.language[key] = true end
 for _, key in ipairs(ns.PULSE_BORDER_KEYS) do CHOICES.pulseBorder[key] = true end
 for _, key in ipairs(ns.PULSE_SOUND_KEYS) do CHOICES.pulseSound[key], CHOICES.pulseLongSound[key] = true, true end
 
@@ -295,16 +299,18 @@ function ns.ProfileUsers(name)
     return count
 end
 
+-- What each profile action says back is for the window's footer, in the
+-- language showing; the names in it are the profiles' own.
 local function Blocked()
-    if InCombatLockdown() then return "Profiles can't change in combat." end
-    if not active then return "Your profile hasn't loaded yet." end
+    if InCombatLockdown() then return L["Profiles can't change in combat."] end
+    if not active then return L["Your profile hasn't loaded yet."] end
 end
 
 local function CleanName(text)
     local name = type(text) == "string" and text:match("^%s*(.-)%s*$") or ""
-    if name == "" then return nil, "Type a profile name first." end
-    if #name > ns.PROFILE_MAX then return nil, "Profile names can be up to " .. ns.PROFILE_MAX .. " characters." end
-    if name:find("[%c|]") then return nil, "Profile names can't use the | character." end
+    if name == "" then return nil, L["Type a profile name first."] end
+    if #name > ns.PROFILE_MAX then return nil, L["Profile names can be up to %d characters."]:format(ns.PROFILE_MAX) end
+    if name:find("[%c|]") then return nil, L["Profile names can't use the | character."] end
     return name
 end
 
@@ -317,10 +323,10 @@ end
 function ns.UseProfile(name)
     local why = Blocked()
     if why then return false, why end
-    if not Profiles()[name] then return false, ('No profile is called "%s".'):format(tostring(name)) end
-    if name == active then return true, "You're already using " .. name .. "." end
+    if not Profiles()[name] then return false, L['No profile is called "%s".']:format(tostring(name)) end
+    if name == active then return true, L["You're already using %s."]:format(name) end
     Switch(name)
-    return true, "Now using " .. name .. "."
+    return true, L["Now using %s."]:format(name)
 end
 
 local function Create(text, copy)
@@ -328,7 +334,7 @@ local function Create(text, copy)
     if why then return false, why end
     local name, problem = CleanName(text)
     if not name then return false, problem end
-    if Profiles()[name] then return false, name .. " already exists." end
+    if Profiles()[name] then return false, L["%s already exists."]:format(name) end
     local from, profile = Profiles()[active], {}
     for field in pairs(PULSE_LISTS) do
         profile[field] = {}
@@ -336,7 +342,8 @@ local function Create(text, copy)
     end
     Profiles()[name] = profile
     Switch(name)
-    return true, (copy and "Copied your ticks to " or "Made ") .. name .. ", and switched to it."
+    if copy then return true, L["Copied your ticks to %s, and switched to it."]:format(name) end
+    return true, L["Made %s, and switched to it."]:format(name)
 end
 
 -- A new, empty profile.
@@ -362,7 +369,7 @@ function ns.UseOnAll()
     local chars = Chars()
     for guid in pairs(chars) do chars[guid] = active end
     db.everyone = active
-    return true, "All your characters use " .. active .. " now, and new ones will too."
+    return true, L["All your characters use %s now, and new ones will too."]:format(active)
 end
 
 -- Whether every character known uses this profile, as chosen for them all.
@@ -390,10 +397,10 @@ function ns.RenameProfile(text)
     if why then return false, why end
     local name, problem = CleanName(text)
     if not name then return false, problem end
-    if name == active then return true, "That's already its name." end
-    if Profiles()[name] then return false, name .. " already exists." end
+    if name == active then return true, L["That's already its name."] end
+    if Profiles()[name] then return false, L["%s already exists."]:format(name) end
     Rename(name)
-    return true, "Renamed to " .. name .. "."
+    return true, L["Renamed to %s."]:format(name)
 end
 
 -- A profile made before the game knew the character's name ("Unknown
@@ -417,7 +424,7 @@ function ns.CanDeleteProfile(text)
         local problem
         name, problem = CleanName(text)
         if not name then return false, problem end
-        if not Profiles()[name] then return false, ('No profile is called "%s".'):format(name) end
+        if not Profiles()[name] then return false, L['No profile is called "%s".']:format(name) end
     end
     local me, others = PlayerGUID(), 0
     for guid, used in pairs(Chars()) do
@@ -443,9 +450,9 @@ function ns.DeleteProfile(text)
         local fresh = FreeName(OwnName(true))
         profiles[fresh] = Lists({})
         Switch(fresh)
-        return true, "Deleted " .. name .. ". You're now on " .. fresh .. "."
+        return true, L["Deleted %s. You're now on %s."]:format(name, fresh)
     end
-    return true, "Deleted " .. name .. "."
+    return true, L["Deleted %s."]:format(name)
 end
 
 -- One of the pulse's lists in this character's profile (repaired with the
@@ -491,11 +498,22 @@ local function Notices()
     return type(notices) == "table" and type(notices.Register) == "function" and notices or nil
 end
 
+-- The shared file is the same in every addon, so its line comes in English:
+-- "<title> 1.7.1 is out (you have 1.7.0). Update on CurseForge.", the
+-- title in its colour. Said again in the language showing; any other line
+-- (one a newer copy of the file words differently) as it comes.
+local function NoticeLine(line)
+    if type(line) ~= "string" then return line end
+    local title, newer, ours = line:match("^(|c%x+.-|r) (%S+) is out %(you have (%S+)%)%. Update on CurseForge%.$")
+    if not title then return line end
+    return L["%s %s is out (you have %s). Update on CurseForge."]:format(title, newer, ours)
+end
+
 local function NoticeUpdates()
     local notices = Notices()
     if not notices then return end
     notices:Register({ code = "CP", title = ns.TITLE, colour = "ffd100", version = ns.Version(),
-        IsOn = function() return ns.Get("updateNotice") == true end, Print = function(line) print(line) end })
+        IsOn = function() return ns.Get("updateNotice") == true end, Print = function(line) print(NoticeLine(line)) end })
 end
 
 -- Changes ---------------------------------------------------------------------------
@@ -503,6 +521,21 @@ end
 -- on a reload; a change only needs the window redrawn. The pulse switched on
 -- or off is told to Forever Enhanced Cooldown Manager too (Link.lua), and the
 -- update notice's tick to the shared update notices.
+
+local Relabel -- below, with the entry in Options > AddOns
+
+-- The language chosen (General page), shown at once with no reload: the
+-- words change (Locale.lua), the entry in Options > AddOns takes them, and
+-- the window, What's new and the tour are made again in them (Window.lua
+-- ns.Remake). The rest takes them the next time it shows or speaks. Your
+-- spells and bags are read again too, for the names the addon gives items
+-- (Healing Potions, Trinket 1).
+local function NewLanguage()
+    if not ns.UseLanguage(ns.LanguageFor(ns.Get("language"))) then return end
+    if ns.Spells then ns.Spells:Stale() end
+    if Relabel then Relabel() end
+    if ns.Remake then ns.Remake() end
+end
 
 function ns.Set(key, value)
     if not db then return end
@@ -512,6 +545,7 @@ function ns.Set(key, value)
         local notices = Notices()
         if notices and type(notices.Refresh) == "function" then notices:Refresh() end
     end
+    if key == "language" then NewLanguage() end
     if ns.window and ns.window:IsShown() then ns.window:Refresh() end
 end
 
@@ -559,6 +593,7 @@ end
 
 -- Options > AddOns ------------------------------------------------------------------
 
+-- Made once; a new language relabels it.
 local function BuildOptionsEntry()
     if not (Settings and Settings.RegisterCanvasLayoutCategory and Settings.RegisterAddOnCategory) then return end
     local canvas = CreateFrame("Frame")
@@ -569,12 +604,15 @@ local function BuildOptionsEntry()
     about:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -10)
     about:SetWidth(560)
     about:SetJustifyH("LEFT")
-    about:SetText("A big icon in the middle of your screen the moment a cooldown is ready. Type /fecp, click the minimap button, or click below, for the settings.")
     local open = CreateFrame("Button", nil, canvas, "UIPanelButtonTemplate")
     open:SetSize(160, 24)
     open:SetPoint("TOPLEFT", about, "BOTTOMLEFT", 0, -14)
-    open:SetText("Open settings")
     open:SetScript("OnClick", function() if ns.ShowWindow then ns.ShowWindow() end end)
+    Relabel = function()
+        about:SetText(L["A big icon in the middle of your screen the moment a cooldown is ready. Type /fecp, click the minimap button, or click below, for the settings."])
+        open:SetText(L["Open settings"])
+    end
+    Relabel()
     local category = Settings.RegisterCanvasLayoutCategory(canvas, ns.TITLE)
     Settings.RegisterAddOnCategory(category)
 end
@@ -591,6 +629,8 @@ local function Load()
     -- An empty settings file: the addon's first login on this account.
     ns.firstInstall = next(db) == nil
     if db.helpSeen ~= true then db.helpSeen = nil end -- the ? clicked once: true, or not saved at all
+    -- The language first, so everything the addon shows from now on is in it.
+    ns.UseLanguage(ns.LanguageFor(ns.Get("language")))
     -- Everything saved is checked and repaired now, before anything uses it.
     RepairProfiles()
     ns.ResolveProfile()

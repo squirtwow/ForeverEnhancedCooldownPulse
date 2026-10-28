@@ -2,17 +2,22 @@
 -- list down the left (Cooldown pulse and General), and the chosen page in
 -- the rest. The title bar has the profile menu, the ? for help with the page
 -- showing and the X; the footer the version, and a note for whatever is
--- under the mouse. Drawn in the flat charcoal Theme style.
+-- under the mouse. Drawn in the flat charcoal Theme style. Its words are in
+-- the language showing (Locale.lua) as it's made; a new language makes it
+-- again (ns.Remake, below).
 local _, ns = ...
-local T = ns.Theme
+local T, L = ns.Theme, ns.L
 
 -- The pages are as wide as Forever Enhanced Cooldown Manager's, with a
 -- narrower list for just the two.
 local WIDTH, HEIGHT = 790, 560
 local HEADER, FOOTER, NAV = 42, 28, 150
 local HEART = "Heart.tga" -- white on clear, tinted to the accent in the footer's credit
+
 -- A list's scroll thumb, wherever there's one: the cooldowns and the profiles.
-ns.SCROLL_NOTE = "Drag to scroll the list, or turn the mouse wheel over it."
+function ns.ScrollNote()
+    return L["Drag to scroll the list, or turn the mouse wheel over it."]
+end
 
 local function Version()
     local version = ns.Version()
@@ -20,8 +25,11 @@ local function Version()
 end
 
 -- A link to copy, in the window's own look: an addon can't open a web page
--- itself. The link stays as it is, selected.
-local COPY = "Press Ctrl+C to copy, then paste it into your browser."
+-- itself. The link stays as it is, selected. Its words are set each time it
+-- shows, in the language showing then.
+local function Copy()
+    return L["Press Ctrl+C to copy, then paste it into your browser."]
+end
 local copyBox
 local function CopyLink(title, url, note)
     if not copyBox then
@@ -32,7 +40,7 @@ local function CopyLink(title, url, note)
         box:SetToplevel(true)
         box:EnableMouse(true)
         T:Flat(box, T.BG, T.CONTROL_BORDER)
-        T:Paint(function(accent) box:SetBackdropBorderColor(accent[1], accent[2], accent[3], 1) end)
+        T:Paint(box, function(accent) box:SetBackdropBorderColor(accent[1], accent[2], accent[3], 1) end)
         box.title = T:Heading(box, "")
         box.title:SetPoint("TOPLEFT", 16, -16)
         box.note = T:Text(box, "GameFontHighlightSmall", T.MUTED)
@@ -48,7 +56,7 @@ local function CopyLink(title, url, note)
         end)
         box.input:SetScript("OnEscapePressed", function() box:Hide() end)
         box.input:SetScript("OnEnterPressed", function() box:Hide() end)
-        local close = T:Button(box, "Close", 90, 22)
+        local close = T:Button(box, "", 90, 22)
         close:SetPoint("BOTTOMRIGHT", -16, 12)
         close:SetScript("OnClick", function() box:Hide() end)
         box.close = close
@@ -56,7 +64,8 @@ local function CopyLink(title, url, note)
     end
     copyBox.url = url
     copyBox.title:SetText(title:upper())
-    copyBox.note:SetText(note or COPY)
+    copyBox.note:SetText(note or Copy())
+    copyBox.close:SetLabel(L["Close"])
     copyBox:Show()
     copyBox:Raise()
     copyBox.input:SetText(url)
@@ -69,7 +78,8 @@ ns.DISCORD_URL = "https://discord.gg/FVfcDWJncr"
 -- The Discord invite, ready to copy: from the General page, What's new and
 -- /fecp discord.
 function ns.ShowDiscord()
-    CopyLink("Join the Discord", ns.DISCORD_URL, "Found a bug or have an idea? " .. COPY)
+    CopyLink(L["Join the Discord"], ns.DISCORD_URL,
+        L["Found a bug or have an idea? Press Ctrl+C to copy, then paste it into your browser."])
 end
 
 -- General ----------------------------------------------------------------------------
@@ -88,9 +98,9 @@ end
 -- (this addon's own copy, so it shows without it), a line about it, and Open
 -- while it's loaded, or its links to copy while it isn't. slash and frame:
 -- its command and its settings window, by their names in the game, only read.
+-- Its words in English, looked up where they show; install: the link's note
+-- says how to install from it.
 local MORE_HEIGHT, MORE_GAP = 74, 8
-local GET_IT = "Get it on CurseForge or GitHub: click one for its link."
-local INSTALL = COPY .. " On CurseForge, Install opens the CurseForge app."
 local MORE = {
     {
         name = "EraUI", folder = "EraUI", icon = "EraUIIcon.tga", slash = "ERAUI", frame = "EraUISettingsFrame",
@@ -98,7 +108,7 @@ local MORE = {
         installed = "Installed. Type /era, or click Open.",
         open = "Open EraUI's settings, as /era does.",
         links = {
-            { label = "CurseForge", url = "https://www.curseforge.com/wow/addons/eraui", note = INSTALL },
+            { label = "CurseForge", url = "https://www.curseforge.com/wow/addons/eraui", install = true },
             { label = "GitHub", url = "https://github.com/squirtwow/EraUI" },
         },
     },
@@ -109,7 +119,7 @@ local MORE = {
         installed = "Installed. Type /ccm, or click Open.",
         open = "Open Forever Enhanced Cooldown Manager's settings, as /ccm does.",
         links = {
-            { label = "CurseForge", url = "https://www.curseforge.com/wow/addons/forever-enhanced-cooldown-manager", note = INSTALL },
+            { label = "CurseForge", url = "https://www.curseforge.com/wow/addons/forever-enhanced-cooldown-manager", install = true },
             { label = "GitHub", url = "https://github.com/squirtwow/ForeverEnhancedCooldownManager" },
         },
     },
@@ -131,12 +141,12 @@ local function MoreCard(window, page, more, y)
     local about = T:Text(card, "GameFontHighlightSmall", T.MUTED)
     about:SetPoint("TOPLEFT", 60, -28)
     about:SetWidth(330) -- clear of the buttons on the right
-    about:SetText(more.about)
+    about:SetText(L[more.about])
     local state = T:Text(card, "GameFontHighlightSmall", T.MUTED)
     state:SetPoint("BOTTOMLEFT", 60, 8)
     -- Open: this window goes and the other's comes up, as its command
     -- brings it. One already open comes to the front, never toggled shut.
-    local open = T:Button(card, "Open", 80, 22)
+    local open = T:Button(card, L["Open"], 80, 22)
     open:SetPoint("RIGHT", -12, 0)
     open:SetScript("OnClick", function()
         local run, other = SlashCmdList and SlashCmdList[more.slash], _G[more.frame]
@@ -145,13 +155,16 @@ local function MoreCard(window, page, more, y)
         window:Hide()
         if shown then other:Raise() else run("") end
     end)
-    window:Hint(open, more.open)
+    window:Hint(open, L[more.open])
     local links = {}
     for i, link in ipairs(more.links) do
         local button = T:Button(card, link.label, 90, 22)
         button:SetPoint("RIGHT", -12 - (#more.links - i) * 98, 0)
-        button:SetScript("OnClick", function() CopyLink(more.name .. " on " .. link.label, link.url, link.note) end)
-        window:Hint(button, more.name .. " on " .. link.label .. ", as a link to copy.")
+        button:SetScript("OnClick", function()
+            CopyLink(L["%s on %s"]:format(more.name, link.label), link.url, link.install
+                and L["Press Ctrl+C to copy, then paste it into your browser. On CurseForge, Install opens the CurseForge app."] or nil)
+        end)
+        window:Hint(button, L["%s on %s, as a link to copy."]:format(more.name, link.label))
         links[i] = button
     end
     card.icon, card.name, card.about, card.state, card.open, card.links = icon, name, about, state, open, links
@@ -160,54 +173,73 @@ local function MoreCard(window, page, more, y)
         local installed = C_AddOns and C_AddOns.IsAddOnLoaded and C_AddOns.IsAddOnLoaded(more.folder)
         open:SetShown(installed and true or false)
         for _, button in ipairs(links) do button:SetShown(not installed) end
-        state:SetText(installed and more.installed or GET_IT)
+        state:SetText(installed and L[more.installed] or L["Get it on CurseForge or GitHub: click one for its link."])
     end
     return card
 end
 
+-- The language: the game's (Auto), or one by hand, each by its own name so
+-- it can be found whichever is showing. Auto, the longest, is wider.
+local LANGUAGE_WIDTHS = { auto = 150, enUS = 80, zhCN = 80 }
+local function LanguageChoice(window, page, x, y)
+    local items, width = {}, 2
+    for _, key in ipairs(ns.LANGUAGE_KEYS) do
+        local label = key == "auto" and L["Auto (game language)"] or key == "zhCN" and "简体中文" or "English"
+        items[#items + 1] = { key = key, label = label, width = LANGUAGE_WIDTHS[key] }
+        width = width + LANGUAGE_WIDTHS[key]
+    end
+    local pills = T:Segmented(page, items, width, function(key) ns.Set("language", key) end)
+    pills:SetPoint("TOPLEFT", x, y)
+    for _, button in ipairs(pills.buttons) do
+        window:Hint(button, L["The language of this window, What's new and the addon's lines in chat. Auto follows your game:"
+            .. " Simplified Chinese on a Simplified Chinese game, English on any other. (experimental)"])
+    end
+    return pills
+end
+
 -- Help (the tour, What's new and the Discord), the minimap button, the
--- window's accent, which version this is, and more from Squirt.
+-- window's accent and language, which version this is, and more from Squirt.
 local function BuildGeneral(window, page)
-    T:Heading(page, "Help"):SetPoint("TOPLEFT", 16, -16)
-    local tour = T:Button(page, "Take the tour", 110, 22)
+    T:Heading(page, L["Help"]):SetPoint("TOPLEFT", 16, -16)
+    local tour = T:Button(page, L["Take the tour"], 110, 22)
     tour:SetPoint("TOPLEFT", 16, -36)
     tour:SetScript("OnClick", function() if ns.Tour then ns.Tour:Start() end end)
-    window:Hint(tour, "A short tour of this window, a page at a time. /fecp tour starts it too.")
-    local news = T:Square(page, "What's new")
+    window:Hint(tour, L["A short tour of this window, a page at a time. /fecp tour starts it too."])
+    local news = T:Square(page, L["What's new"])
     news:SetSize(100, 22)
     news.label:SetFontObject("GameFontHighlightSmall")
     news:SetPoint("TOPLEFT", 134, -36)
     news:SetScript("OnClick", function() if ns.ShowNotes then ns.ShowNotes() end end)
     window:Hint(news, function()
-        return #ns.NOTES > 0 and "What changed in this version. /fecp new shows it too."
-            or "Nothing yet: what changes in each update shows here."
+        return #ns.NOTES > 0 and L["What changed in this version. /fecp new shows it too."]
+            or L["Nothing yet: what changes in each update shows here."]
     end)
     local discord = T:Button(page, "Discord", 80, 22)
     discord:SetPoint("TOPLEFT", 242, -36)
     discord:SetScript("OnClick", ns.ShowDiscord)
-    window:Hint(discord, "The Discord invite, ready to copy: bugs, ideas and help.")
-    Detail(page, "A tour of the basics, what changed in each update, or the Discord for bugs, ideas and help.", 16, -66, 600)
+    window:Hint(discord, L["The Discord invite, ready to copy: bugs, ideas and help."])
+    Detail(page, L["A tour of the basics, what changed in each update, or the Discord for bugs, ideas and help."], 16, -66, 600)
     window.tour, window.news, window.discord = tour, news, discord
 
-    T:Heading(page, "Minimap button"):SetPoint("TOPLEFT", 16, -100)
-    local minimap = T:Check(page, "Show the minimap button", function(self)
+    T:Heading(page, L["Minimap button"]):SetPoint("TOPLEFT", 16, -100)
+    local minimap = T:Check(page, L["Show the minimap button"], function(self)
         ns.Set("minimap", self:GetChecked())
         if ns.MinimapButton then ns.MinimapButton:Apply() end
     end)
     minimap:SetPoint("TOPLEFT", 16, -120)
-    window:Hint(minimap, "A button on the minimap for these settings. Off, /fecp still opens them.")
+    window:Hint(minimap, L["A button on the minimap for these settings. Off, /fecp still opens them."])
     window.minimap = minimap
-    local free = T:Check(page, "Free-floating", function(self)
+    local free = T:Check(page, L["Free-floating"], function(self)
         if ns.MinimapButton then ns.MinimapButton:SetFree(self:GetChecked()) end
     end)
     free:SetPoint("TOPLEFT", 260, -120)
-    window:Hint(free, "Drag the button anywhere on the screen, not just round the minimap. It shows even with the minimap hidden.")
+    window:Hint(free, L["Drag the button anywhere on the screen, not just round the minimap. It shows even with the minimap hidden."])
     window.minimapFree = free
-    Detail(page, "Click it for these settings, right-click for What's new, and drag it round the minimap, or anywhere while it's free-floating.",
+    Detail(page, L["Click it for these settings, right-click for What's new, and drag it round the minimap, or anywhere while it's free-floating."],
         34, -140, 580)
 
-    -- The window's own accent.
-    T:Heading(page, "Window accent"):SetPoint("TOPLEFT", 16, -180)
+    -- The window's own accent, and beside it the language.
+    T:Heading(page, L["Window accent"]):SetPoint("TOPLEFT", 16, -180)
     local swatches = {}
     for i, key in ipairs(ns.ACCENT_KEYS) do
         local swatch = CreateFrame("Button", nil, page, "BackdropTemplate")
@@ -219,28 +251,31 @@ local function BuildGeneral(window, page)
             window:Refresh()
         end)
         swatch.key = key
-        window:Hint(swatch, T.ACCENTS[key].name .. " for this window's headings, ticks, sliders and highlights.")
+        window:Hint(swatch, L["%s for this window's headings, ticks, sliders and highlights."]:format(L[T.ACCENTS[key].name]))
         swatches[i] = swatch
     end
     local chosen = T:Text(page, "GameFontHighlightSmall", T.MUTED)
     chosen:SetPoint("TOPLEFT", 16 + #ns.ACCENT_KEYS * (SWATCH + SWATCH_GAP) + 2, -204)
     window.swatches, window.accentName = swatches, chosen
+    T:Heading(page, L["Language"]):SetPoint("TOPLEFT", 260, -180)
+    local language = LanguageChoice(window, page, 260, -200)
+    window.language = language
 
     -- Which version this is, how to open the window, and whether to hear of
     -- a newer one (Core.lua's update notices), beside it.
-    T:Heading(page, "About"):SetPoint("TOPLEFT", 16, -236)
+    T:Heading(page, L["About"]):SetPoint("TOPLEFT", 16, -236)
     local about = Detail(page, "", 16, -256, 340)
     window.about = about
-    local updates = T:Check(page, "Tell me when an update is out", function(self)
+    local updates = T:Check(page, L["Tell me when an update is out"], function(self)
         ns.Set("updateNotice", self:GetChecked())
     end)
     updates:SetPoint("TOPLEFT", 380, -252)
-    window:Hint(updates, "A line in chat, once a session, when a newer version is out. It uses a hidden chat channel,"
-        .. " which takes one of your chat channel slots.")
+    window:Hint(updates, L["A line in chat, once a session, when a newer version is out. It uses a hidden chat channel,"
+        .. " which takes one of your chat channel slots."])
     window.updateNotice = updates
 
     -- More from Squirt: the author's other addons, a card each.
-    T:Heading(page, "More from Squirt"):SetPoint("TOPLEFT", 16, -296)
+    T:Heading(page, L["More from Squirt"]):SetPoint("TOPLEFT", 16, -296)
     local cards = {}
     for i, more in ipairs(MORE) do
         cards[i] = MoreCard(window, page, more, -316 - (i - 1) * (MORE_HEIGHT + MORE_GAP))
@@ -258,22 +293,21 @@ local function BuildGeneral(window, page)
             local colour, picked = T.ACCENTS[swatch.key].colour, swatch.key == accent
             T:Flat(swatch, { colour[1], colour[2], colour[3], 1 }, picked and { 1, 1, 1, 1 } or T.CONTROL_BORDER)
         end
-        chosen:SetText(T.ACCENTS[accent].name)
+        chosen:SetText(L[T.ACCENTS[accent].name])
+        language:SetSelected(ns.Get("language"))
         local version = ns.Version()
-        about:SetText(ns.TITLE .. (version == "dev" and ", a copy straight from the source." or (" version " .. version .. "."))
-            .. " Made by Squirt. Type /fecp to open this window.")
+        if version == "dev" then
+            about:SetText(L["%s, a copy straight from the source. Made by Squirt. Type /fecp to open this window."]:format(ns.TITLE))
+        else
+            about:SetText(L["%s version %s. Made by Squirt. Type /fecp to open this window."]:format(ns.TITLE, version))
+        end
     end
 end
 
 -- The list ---------------------------------------------------------------------
 
--- What each page is for, in the footer on hover.
-local NAV_NOTES = {
-    pulse = "A big icon in the middle of your screen when a cooldown is ready.",
-    general = "The tour, What's new, the Discord, the minimap button, this window's accent, update notices and Squirt's other addons.",
-}
-
-local function NavItem(window, nav, key, label, y)
+-- A page in the list: its name, and what it's for in the footer on hover.
+local function NavItem(window, nav, key, label, note, y)
     local item = CreateFrame("Button", nil, nav)
     item:SetPoint("TOPLEFT", 0, -y)
     item:SetPoint("RIGHT")
@@ -287,7 +321,7 @@ local function NavItem(window, nav, key, label, y)
     item.mark:SetPoint("TOPLEFT")
     item.mark:SetPoint("BOTTOMLEFT")
     item.mark:SetWidth(3)
-    T:Paint(function(accent) T:Fill(item.mark, accent) end)
+    T:Paint(item.mark, function(accent) T:Fill(item.mark, accent) end)
     local hover = item:CreateTexture(nil, "HIGHLIGHT")
     hover:SetAllPoints()
     hover:SetColorTexture(1, 1, 1, .04)
@@ -296,7 +330,7 @@ local function NavItem(window, nav, key, label, y)
     item.label:SetText(label)
     item.key = key
     item:SetScript("OnClick", function() window:Select(key) end)
-    window:Hint(item, NAV_NOTES[key])
+    window:Hint(item, note)
     return item
 end
 
@@ -304,6 +338,7 @@ end
 
 -- "Are you sure?": a small dialog over the whole window, for anything that
 -- can't simply be clicked back. window:Ask(title, detail, button, action).
+-- What it asks comes in the language showing; Cancel is in it too.
 local function BuildConfirm(window)
     local shade = CreateFrame("Frame", nil, window)
     shade:SetAllPoints()
@@ -326,7 +361,7 @@ local function BuildConfirm(window)
     local yes = T:Button(dialog, "", 90, 22)
     yes:SetPoint("BOTTOMRIGHT", -14, 14)
     yes.label:SetTextColor(T.WARN[1], T.WARN[2], T.WARN[3])
-    local no = T:Button(dialog, "Cancel", 90, 22)
+    local no = T:Button(dialog, L["Cancel"], 90, 22)
     no:SetPoint("RIGHT", yes, "LEFT", -6, 0)
     window.confirm = { shade = shade, dialog = dialog, yes = yes, no = no }
     local pending
@@ -364,14 +399,14 @@ end
 local function Credit()
     local accent = T:Accent()
     local function Byte(v) return math.floor(math.max(0, math.min(1, v)) * 255 + .5) end
-    return ("Made with |T%s:0:0:0:0:32:32:0:32:0:32:%d:%d:%d|t by |cff%sSquirt|r"):format(ns.MEDIA .. HEART,
-        Byte(accent[1]), Byte(accent[2]), Byte(accent[3]), T:Hex(accent))
+    local heart = ("|T%s:0:0:0:0:32:32:0:32:0:32:%d:%d:%d|t"):format(ns.MEDIA .. HEART, Byte(accent[1]), Byte(accent[2]), Byte(accent[3]))
+    return L["Made with %s by %s"]:format(heart, "|cff" .. T:Hex(accent) .. "Squirt|r")
 end
 
 local function BuildFooter(window)
     local version = T:Text(window, "GameFontHighlightSmall", T.MUTED)
     version:SetPoint("BOTTOMLEFT", 12, 9)
-    version:SetText(Version() .. "   /fecp to open")
+    version:SetText(Version() .. "   " .. L["/fecp to open"])
     window.versionText = version
     local note = T:Text(window, "GameFontHighlightSmall", T.MUTED)
     note:SetPoint("BOTTOMRIGHT", -12, 9)
@@ -421,7 +456,7 @@ local function BuildFooter(window)
     -- Closed, nothing is under the mouse any more: open, the footer rests.
     window:HookScript("OnHide", function() window.hovered = nil end)
     -- A new accent recolours the heart and name at once.
-    T:Paint(function() window:ShowNote() end)
+    T:Paint(window, function() window:ShowNote() end)
 end
 
 -- The ? beside the X: a walkthrough of the page showing (Tour.lua), or a
@@ -432,7 +467,6 @@ end
 -- room on (General). Neither shows while the welcome, the tour or a
 -- walkthrough is up, nor over the profile menu or What's new: they come
 -- back after, and each time the window opens again.
-local NUDGE_TEXT = "New: click ? for help with any page"
 local NUDGE_PAD = 10
 local NUDGE_TEXT_WIDTH = 240 -- one line, with room to spare
 local NUDGE_GAP = 4 -- between the ? and the tip of the note's arrow
@@ -447,15 +481,15 @@ local function BuildHelp(window, header)
     window.help = help
     function window:Help()
         if self.profilePanel and self.profilePanel:IsShown() then
-            self:Say("Profiles: click one to use it, or x to delete it. Type a name to make, copy or rename one.")
+            self:Say(L["Profiles: click one to use it, or x to delete it. Type a name to make, copy or rename one."])
             return self:Refresh()
         end
         if ns.Tour and ns.Tour:StartPage(self.selected) then return end
-        self:Say("Nothing to walk through here yet. Hover over anything and this line says what it does.")
+        self:Say(L["Nothing to walk through here yet. Hover over anything and this line says what it does."])
         self:Refresh()
     end
     help:HookScript("OnEnter", function(self)
-        T:ShowTip(self, "Page help", "Walks you through this page, a step at a time.", "below")
+        T:ShowTip(self, L["Page help"], L["Walks you through this page, a step at a time."], "below")
     end)
     help:HookScript("OnLeave", function(self) T:HideTip(self) end)
 
@@ -479,12 +513,12 @@ local function BuildHelp(window, header)
     nudge.text:SetWidth(NUDGE_TEXT_WIDTH)
     nudge.text:SetJustifyH("CENTER")
     nudge.text:SetWordWrap(true)
-    nudge.text:SetText(NUDGE_TEXT)
+    nudge.text:SetText(L["New: click ? for help with any page"])
     nudge.text:SetPoint("LEFT", NUDGE_PAD, 0)
     local away = T:Square(nudge, "x")
     away:SetSize(16, 16)
     away:SetPoint("RIGHT", -6, 0)
-    window:Hint(away, "Put this note away. The ? stays, for help with any page.")
+    window:Hint(away, L["Put this note away. The ? stays, for help with any page."])
     nudge.close = away
     nudge:SetHeight(2 * 8 + math.max(12, math.ceil(nudge.text:GetStringHeight() or 12)))
     nudge:SetPoint("TOPRIGHT", header.close, "BOTTOMRIGHT", 0, -(NUDGE_GAP + NUDGE_ARROW[2]))
@@ -553,7 +587,7 @@ local function BuildHelp(window, header)
         glow:Hide()
     end)
     -- A new accent: the note and the glow at once, the ?'s edge next frame.
-    T:Paint(function(accent)
+    T:Paint(nudge, function(accent)
         nudge:SetBackdropBorderColor(accent[1], accent[2], accent[3], 1)
         nudge.arrow:SetVertexColor(accent[1], accent[2], accent[3], 1)
         glow:SetColorTexture(accent[1], accent[2], accent[3], 1)
@@ -596,7 +630,7 @@ local function BuildWindow()
     window.close = header.close
     window.header = header
     BuildFooter(window)
-    window:Hint(header.close, "Close the window. Escape closes it too, and /fecp opens it again.")
+    window:Hint(header.close, L["Close the window. Escape closes it too, and /fecp opens it again."])
     BuildHelp(window, header)
     BuildConfirm(window)
     ns.BuildProfileMenu(window, header, window.help)
@@ -614,8 +648,10 @@ local function BuildWindow()
     edge:SetWidth(1)
     T:Fill(edge, T.BORDER)
     window.nav = {
-        pulse = NavItem(window, nav, "pulse", "Cooldown pulse", 12),
-        general = NavItem(window, nav, "general", "General", 44),
+        pulse = NavItem(window, nav, "pulse", L["Cooldown pulse"],
+            L["A big icon in the middle of your screen when a cooldown is ready."], 12),
+        general = NavItem(window, nav, "general", L["General"], L["The tour, What's new, the Discord, the minimap button,"
+            .. " this window's accent and language, update notices and Squirt's other addons."], 44),
     }
 
     -- Pages fill the rest.
@@ -671,4 +707,49 @@ end
 function ns.Toggle()
     local window = ns.window or BuildWindow()
     window:SetShown(not window:IsShown())
+end
+
+-- Where a frame was dragged to, and the same place for the one made in its
+-- stead.
+local function Spot(frame)
+    local point, _, relative, x, y = frame:GetPoint()
+    if type(point) == "string" and type(relative) == "string" then return { point, relative, x or 0, y or 0 } end
+end
+
+local function PutAt(frame, spot)
+    if not (frame and spot) then return end
+    frame:ClearAllPoints()
+    frame:SetPoint(spot[1], UIParent, spot[2], spot[3], spot[4])
+end
+
+-- A new language (Core.lua): the window is made again in its words, as it
+-- was: open or shut, where it was dragged to, on the same page. A frame
+-- can't be thrown away, so the old one is only hidden for good, and its
+-- painters forgotten (an accent change leaves it be). The tour is made
+-- again as it next starts, and What's new as it next shows (at once, where
+-- it was, if it's open); the link box and the tooltip take the new words as
+-- they next show.
+function ns.Remake()
+    if ns.Tour then ns.Tour:Forget() end
+    local notes = ns.Notes and ns.Notes:Forget()
+    if copyBox then copyBox:Hide() end
+    T:HideTip()
+    local old = ns.window
+    if old then
+        local shown, selected, spot = old:IsShown(), old.selected, Spot(old)
+        old:Hide()
+        T:Forget(old)
+        ns.window = nil
+        local window = BuildWindow()
+        PutAt(window, spot)
+        window.selected = selected
+        if shown then
+            window:Show()
+            window:Raise()
+        end
+    end
+    if notes and ns.ShowNotes then
+        ns.ShowNotes(notes.seen)
+        PutAt(ns.notes, Spot(notes.frame))
+    end
 end

@@ -5,6 +5,7 @@
 -- page turns it off, or sets it free-floating: dragged anywhere on the
 -- screen, and showing even with the minimap hidden.
 local _, ns = ...
+local L = ns.L
 
 local M = {}
 ns.MinimapButton = M
@@ -12,8 +13,11 @@ ns.MinimapButton = M
 -- Its tooltip is the addon's own (Theme.lua), never the game's: an addon
 -- writing into the game's tooltip taints it, and in Forever it then breaks on
 -- your hidden health every frame it shows a player (thousands of errors).
-local TIP = "Click: settings\nRight-click: What's new\nDrag: move it round the minimap"
-local TIP_FREE = "Click: settings\nRight-click: What's new\nDrag: move it anywhere"
+-- In the language showing as it shows.
+local function Tip()
+    if ns.Get("minimapFree") then return L["Click: settings\nRight-click: What's new\nDrag: move it anywhere"] end
+    return L["Click: settings\nRight-click: What's new\nDrag: move it round the minimap"]
+end
 
 local RING_GAP = 4 -- how far out from the minimap's edge it sits
 local AFTER_DRAG = .2 -- a click this soon after a drag is the drag letting go
@@ -147,7 +151,7 @@ function M:Start()
         if self.isMoving then Drop(self) end
     end)
     button:SetScript("OnEnter", function(self)
-        ns.Theme:ShowTip(self, ns.TITLE, ns.Get("minimapFree") and TIP_FREE or TIP, "below")
+        ns.Theme:ShowTip(self, ns.TITLE, Tip(), "below")
     end)
     button:SetScript("OnLeave", function(self) ns.Theme:HideTip(self) end)
     -- The minimap can change size: stay on its edge.

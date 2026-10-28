@@ -1,5 +1,6 @@
 // The addon's rules, checked straight from its source: the TOC loads every
-// file once, in order, for Forever, by Squirt; the licence and packaging are
+// file once, in order (the words, then the settings, first), for Forever,
+// by Squirt; the licence and packaging are
 // right; the pulse only hands cooldowns on (it never reads one's times, only
 // whether it's on hold) and never takes the mouse but for the box that
 // moves it; answers the game may keep secret are read with Open() first;
@@ -103,7 +104,8 @@ test('the TOC loads every file once, in order, for Forever, by Squirt', async ()
   assert.deepEqual([...listed].sort(), await rootFiles(/\.lua$/i), 'every .lua file in the folder, and no other');
   assert.equal(new Set(listed).size, listed.length, 'each once');
   const at = name => listed.indexOf(name);
-  assert.equal(at('Core.lua'), 0, 'the settings first');
+  assert.equal(at('Locale.lua'), 0, 'the words first, so every file can look them up');
+  assert.equal(at('Core.lua'), 1, 'then the settings');
   assert.ok(at('Link.lua') < at('Pulse.lua') && at('Theme.lua') < at('Pulse.lua'), 'the link and the look before the pulse, which uses both');
   assert.ok(at('Ranks.lua') < at('Spells.lua') && at('Spells.lua') < at('Pulse.lua'), 'the game data and the list before the pulse');
   assert.ok(at('PulsePage.lua') < at('Window.lua') && at('ProfileMenu.lua') < at('Window.lua'), 'the page and the profile menu before the window');

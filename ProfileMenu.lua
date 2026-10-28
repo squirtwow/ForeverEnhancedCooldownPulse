@@ -2,22 +2,23 @@
 -- uses, and a panel under it listing every profile (click one to switch, or
 -- its x to delete it after asking) with a box to type a name for New, Copy
 -- or Rename. Profiles hold the pulse's ticks and which are Long only; the
--- rules live in Core.lua.
+-- rules live in Core.lua. Its words are in the language showing; the
+-- profiles' names are their own.
 local _, ns = ...
-local T = ns.Theme
+local T, L = ns.Theme, ns.L
 
 local WIDTH, ROW = 300, 22
 local LIST_ROWS = 8 -- profiles listed at once; more scroll
 local LIST_WIDTH = WIDTH - 28 -- the list, clear of its scroll thumb
 
 local function Users(name)
-    if ns.OnAll(name) then return "all characters" end
+    if ns.OnAll(name) then return L["all characters"] end
     local count = ns.ProfileUsers(name)
     local mine = name == ns.ProfileName()
-    if mine and count > 1 then return "you + " .. (count - 1) end
-    if mine then return "you" end
-    if count == 0 then return "unused" end
-    return count == 1 and "1 character" or (count .. " characters")
+    if mine and count > 1 then return L["you + %d"]:format(count - 1) end
+    if mine then return L["you"] end
+    if count == 0 then return L["unused"] end
+    return count == 1 and L["1 character"] or L["%d characters"]:format(count)
 end
 
 function ns.BuildProfileMenu(window, header, anchor)
@@ -25,7 +26,7 @@ function ns.BuildProfileMenu(window, header, anchor)
     button:SetPoint("RIGHT", anchor, "LEFT", -8, 0)
     button.label:SetWidth(264)
     button.label:SetWordWrap(false)
-    window:Hint(button, "The profile this character uses: what's ticked to pulse, and which are Long. Click for every profile, to switch or make one.")
+    window:Hint(button, L["The profile this character uses: what's ticked to pulse, and which are Long. Click for every profile, to switch or make one."])
     window.profileButton = button
 
     local panel = CreateFrame("Frame", nil, window, "BackdropTemplate")
@@ -37,7 +38,7 @@ function ns.BuildProfileMenu(window, header, anchor)
     panel:EnableMouse(true)
     panel:Hide()
     window.profilePanel = panel
-    T:Heading(panel, "Profiles"):SetPoint("TOPLEFT", 10, -10)
+    T:Heading(panel, L["Profiles"]):SetPoint("TOPLEFT", 10, -10)
 
     -- The profiles scroll in a list of up to LIST_ROWS, so however many there
     -- are, the name box and buttons under it stay in reach. Pinned by two
@@ -52,7 +53,7 @@ function ns.BuildProfileMenu(window, header, anchor)
     end
     Pin()
     panel:HookScript("OnShow", function() C_Timer.After(0, Pin) end)
-    window:Hint(list.thumb, ns.SCROLL_NOTE)
+    window:Hint(list.thumb, ns.ScrollNote())
     window.profileList = list
 
     -- Deleting asks first, in the window's own dialog, saying what happens to
@@ -65,15 +66,20 @@ function ns.BuildProfileMenu(window, header, anchor)
             return window:Refresh()
         end
         local mine = name == ns.ProfileName()
-        local detail = mine and "You're using it, so you'll move to a new, empty profile of your own. " or ""
+        local yours = mine and L["You're using it, so you'll move to a new, empty profile of your own."] or nil
+        local theirs
         if others > 0 then
             local everyone = ns.EveryoneProfile()
-            local fate = everyone and everyone ~= name and ("loads " .. everyone)
-                or "gets a new, empty profile of its own"
-            detail = detail .. (others == 1 and "Another character uses it, and " or (others .. " other characters use it, and each "))
-                .. fate .. " at its next login. "
+            local loads = everyone and everyone ~= name and everyone
+            if others == 1 then
+                theirs = loads and L["Another character uses it, and loads %s at its next login."]:format(loads)
+                    or L["Another character uses it, and gets a new, empty profile of its own at its next login."]
+            else
+                theirs = loads and L["%d other characters use it, and each loads %s at its next login."]:format(others, loads)
+                    or L["%d other characters use it, and each gets a new, empty profile of its own at its next login."]:format(others)
+            end
         end
-        window:Ask(('Delete "%s"?'):format(name), detail .. "This can't be undone.", "Delete", function()
+        window:Ask(L['Delete "%s"?']:format(name), ns.Join(yours, theirs, L["This can't be undone."]), L["Delete"], function()
             local done, message = ns.DeleteProfile(name)
             window:Say(message)
             -- Deleting your own profile moves you, so the menu closes as for any switch.
@@ -95,7 +101,7 @@ function ns.BuildProfileMenu(window, header, anchor)
         row.mark:SetPoint("TOPLEFT")
         row.mark:SetPoint("BOTTOMLEFT")
         row.mark:SetWidth(3)
-        T:Paint(function(accent) T:Fill(row.mark, accent) end)
+        T:Paint(row.mark, function(accent) T:Fill(row.mark, accent) end)
         local hover = row:CreateTexture(nil, "HIGHLIGHT")
         hover:SetAllPoints()
         hover:SetColorTexture(1, 1, 1, .05)
@@ -117,38 +123,38 @@ function ns.BuildProfileMenu(window, header, anchor)
             window:Refresh()
         end)
         window:Hint(row, function()
-            return row.profile == ns.ProfileName() and "The profile you're on." or ("Switch to " .. row.profile .. ".")
+            return row.profile == ns.ProfileName() and L["The profile you're on."] or L["Switch to %s."]:format(row.profile)
         end)
-        window:Hint(row.remove, function() return "Delete " .. row.profile .. ". It asks first." end)
+        window:Hint(row.remove, function() return L["Delete %s. It asks first."]:format(row.profile) end)
         rows[i] = row
         return row
     end
 
     -- Placed now as for one profile, then moved under the list on refresh, so
     -- nothing is ever laid out without a place.
-    local input = T:Input(panel, "Profile name", WIDTH - 20)
+    local input = T:Input(panel, L["Profile name"], WIDTH - 20)
     input:SetPoint("TOPLEFT", 10, -54)
-    window:Hint(input, "A name for New, Copy or Rename.")
+    window:Hint(input, L["A name for New, Copy or Rename."])
     window.profileInput = input
     local hint = T:Text(panel, "GameFontHighlightSmall", T.MUTED)
     hint:SetPoint("TOPLEFT", 10, -136)
     hint:SetWidth(WIDTH - 20)
-    hint:SetText("Click a profile to use it, or x to delete it. Type a name to make, copy or rename one. "
-        .. "Any class can share a profile: each character only lists its own spells.")
+    hint:SetText(L["Click a profile to use it, or x to delete it. Type a name to make, copy or rename one. "
+        .. "Any class can share a profile: each character only lists its own spells."])
 
     -- The profile you're on, for every character and any made later.
-    local everyone = T:Button(panel, "Use on all characters", WIDTH - 20, 22)
+    local everyone = T:Button(panel, L["Use on all characters"], WIDTH - 20, 22)
     everyone:SetPoint("TOPLEFT", 10, -106)
     everyone:SetScript("OnClick", function()
         local name = ns.ProfileName()
         if not name then return end
         if ns.OnAll(name) then
-            window:Say("All your characters already use " .. name .. ".")
+            window:Say(L["All your characters already use %s."]:format(name))
             return window:Refresh()
         end
-        window:Ask(('Use "%s" on all characters?'):format(name),
-            "Every character, and any you make later, loads it. Each only lists its own spells and items. Their own profiles stay in this list.",
-            "Use on all", function()
+        window:Ask(L['Use "%s" on all characters?']:format(name),
+            L["Every character, and any you make later, loads it. Each only lists its own spells and items. Their own profiles stay in this list."],
+            L["Use on all"], function()
                 local _, message = ns.UseOnAll()
                 window:Say(message)
                 panel:Hide()
@@ -156,8 +162,8 @@ function ns.BuildProfileMenu(window, header, anchor)
             end)
     end)
     window:Hint(everyone, function()
-        return ns.OnAll(ns.ProfileName()) and "All your characters use this profile, and new ones will too."
-            or "Loads the profile you're on for every character. Each one only lists its own spells and items."
+        return ns.OnAll(ns.ProfileName()) and L["All your characters use this profile, and new ones will too."]
+            or L["Loads the profile you're on for every character. Each one only lists its own spells and items."]
     end)
     window.profileEveryone = everyone
 
@@ -178,15 +184,17 @@ function ns.BuildProfileMenu(window, header, anchor)
     end
     local buttons = {}
     local x = 10
-    for _, spec in ipairs({ { "New", ns.NewProfile, "Make a new, empty profile with the name typed above, and switch to it." },
-        { "Copy", ns.CopyProfile, "Copy your ticks into a new profile with the name typed above, and switch to it." },
-        { "Rename", ns.RenameProfile, "Give the profile you're on the name typed above, for every character using it." } }) do
-        local action = T:Button(panel, spec[1], 90, 22)
+    -- Each by its key (new, copy, rename), its label in the language showing.
+    for _, spec in ipairs({ { "new", L["New"], ns.NewProfile, L["Make a new, empty profile with the name typed above, and switch to it."] },
+        { "copy", L["Copy"], ns.CopyProfile, L["Copy your ticks into a new profile with the name typed above, and switch to it."] },
+        { "rename", L["Rename"], ns.RenameProfile,
+            L["Give the profile you're on the name typed above, for every character using it."] } }) do
+        local action = T:Button(panel, spec[2], 90, 22)
         action:SetPoint("TOPLEFT", x, -80)
         action.x = x
-        action:SetScript("OnClick", Act(spec[2]))
-        window:Hint(action, spec[3])
-        buttons[spec[1]:lower()] = action
+        action:SetScript("OnClick", Act(spec[3]))
+        window:Hint(action, spec[4])
+        buttons[spec[1]] = action
         x = x + 94
     end
     window.profileActions = buttons
@@ -199,7 +207,7 @@ function ns.BuildProfileMenu(window, header, anchor)
 
     function window:RefreshProfiles()
         local current = ns.ProfileName()
-        button:SetLabel("|cff8b8d92Profile|r   " .. (current or "loading..."))
+        button:SetLabel("|cff8b8d92" .. L["Profile"] .. "|r   " .. (current or L["loading..."]))
         if not panel:IsShown() then return end
         local names = ns.ProfileNames()
         for i, name in ipairs(names) do
@@ -228,7 +236,7 @@ function ns.BuildProfileMenu(window, header, anchor)
         everyone:ClearAllPoints()
         everyone:SetPoint("TOPLEFT", 10, -(y + 52))
         local onAll = ns.OnAll(current)
-        everyone:SetLabel(onAll and "On all characters" or "Use on all characters")
+        everyone:SetLabel(onAll and L["On all characters"] or L["Use on all characters"])
         everyone:SetAlpha(onAll and .5 or 1)
         hint:ClearAllPoints()
         hint:SetPoint("TOPLEFT", 10, -(y + 82))

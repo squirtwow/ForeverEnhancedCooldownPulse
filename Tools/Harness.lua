@@ -12,7 +12,8 @@
 --
 -- For the pulse: a spellbook (H.Book), trinkets, bags and item counts,
 -- cooldowns on hold, the game's sounds, and Forever Enhanced Cooldown
--- Manager loaded or not, with its saved settings (H.Manager).
+-- Manager loaded or not, with its saved settings (H.Manager). The game's
+-- language is H.locale (GetLocale), and Chinese text is measured wide.
 local H = {}
 
 H.checks = 0
@@ -37,10 +38,25 @@ function H.True(value, label)
 end
 
 -- The addon's files, in the TOC's order (Tools/TestRules.mjs checks they match).
-H.FILES = { "Core.lua", "SquirtVersions.lua", "Link.lua", "Theme.lua", "Ranks.lua", "Spells.lua", "Pulse.lua", "PulsePage.lua", "ProfileMenu.lua",
+H.FILES = { "Locale.lua", "Core.lua", "SquirtVersions.lua", "Link.lua", "Theme.lua", "Ranks.lua", "Spells.lua", "Pulse.lua", "PulsePage.lua", "ProfileMenu.lua",
     "Window.lua", "Tour.lua", "MinimapButton.lua", "Notes.lua", "Debug.lua" }
 H.ADDON = "ForeverEnhancedCooldownPulse"
 H.MANAGER = "ForeverEnhancedCooldownManager"
+-- The game's language, as GetLocale gives it: an English game unless a test
+-- says otherwise (kept over each new environment until it changes it back).
+H.locale = "enUS"
+
+-- Text's width in letters: a letter of Chinese (any letter of more than one
+-- byte) is as wide as two of English, as the game draws it.
+local function Letters(text)
+    local count = 0
+    for i = 1, #text do
+        local byte = text:byte(i)
+        if byte < 128 then count = count + 1 elseif byte >= 192 then count = count + 2 end
+    end
+    return count
+end
+H.Letters = Letters
 
 -- Secret values -------------------------------------------------------------------------
 
@@ -236,6 +252,17 @@ function Proto:SetText(t)
 end
 function Proto:GetText() return S[self].text end
 function Proto:SetPoint(...) table.insert(S[self].points, table.pack(...)) end
+-- Like the game: an anchor in full (the first, unless told), what SetPoint
+-- left out filled in: the parent, the same point, no offset.
+function Proto:GetPoint(i)
+    local s = S[self]
+    local p = s.points[i or 1]
+    if not p then return nil end
+    local point, relative, relativePoint, k = p[1], s.parent, p[1], 2
+    if p.n >= k and type(p[k]) ~= "number" then relative, k = p[k] or s.parent, k + 1 end
+    if p.n >= k and type(p[k]) == "string" then relativePoint, k = p[k], k + 1 end
+    return point, relative, relativePoint, p[k] or 0, p[k + 1] or 0
+end
 function Proto:ClearAllPoints() S[self].points = {} end
 function Proto:SetAllPoints(rel) S[self].points = {}; S[self].all = rel or true end
 function Proto:SetSize(w, h) S[self].width, S[self].height = w, h end
@@ -261,12 +288,12 @@ function Proto:SetFrameStrata(strata) S[self].strata = strata; Record(self, "Set
 function Proto:GetFrameStrata() return S[self].strata or "MEDIUM" end
 function Proto:GetStringWidth()
     local text = S[self].text
-    return type(text) == "string" and #text * 6 or 0
+    return type(text) == "string" and Letters(text) * 6 or 0
 end
 -- Wrapped text: about six units a letter, twelve a line.
 function Proto:GetStringHeight()
     local s = S[self]
-    return math.max(1, math.ceil(#(type(s.text) == "string" and s.text or "") * 6 / math.max(1, s.width))) * 12
+    return math.max(1, math.ceil(Letters(type(s.text) == "string" and s.text or "") * 6 / math.max(1, s.width))) * 12
 end
 function Proto:GetFont() return "font", 12, "" end
 -- Like the game: a disabled button takes no click (its OnClick never runs).
@@ -447,6 +474,7 @@ function H.Environment()
     _G.wipe = function(t) for k in pairs(t) do t[k] = nil end return t end
     _G.print = function(msg) H.printed[#H.printed + 1] = msg end
     _G.issecretvalue = IsSecret
+    _G.GetLocale = function() return H.locale end
     _G.ReloadUI = function() error("the addon never reloads the interface") end
     _G.C_CVar = { SetCVar = function(name) Violation("changed the game setting " .. tostring(name)) end }
     _G.SetCVar = C_CVar.SetCVar
@@ -668,7 +696,7 @@ function H.Wide(text, font)
     local small = type(font) == "string" and font:find("Small") ~= nil
     local capitals = text:find("%a") ~= nil and text == text:upper()
     local each = small and (capitals and 7.5 or 6.5) or (capitals and 9 or 7.5)
-    return #text * each
+    return Letters(text) * each
 end
 
 -- Text is as wide as Wide says (in its room, where it's justified), and as

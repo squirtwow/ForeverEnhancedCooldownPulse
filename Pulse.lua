@@ -33,7 +33,7 @@ local _, ns = ...
 local P = {}
 ns.Pulse = P
 
-local T = ns.Theme
+local T, L = ns.Theme, ns.L
 -- The previews' icon until you have a cooldown to show: a pocket watch.
 P.SAMPLE = "Interface\\Icons\\INV_Misc_PocketWatch_01"
 -- Sounds from Blizzard's own Cooldown Manager alerts, so every player has
@@ -69,11 +69,13 @@ local function Open(value)
     return not (issecretvalue and issecretvalue(value))
 end
 
--- A failure is reported once per session.
+-- A failure is reported once per session, in the language showing; the
+-- error itself is the game's.
 local function Report(err)
     if P.lastError then return end
     P.lastError = tostring(err)
-    print("|cffffd100" .. ns.TITLE .. ":|r the cooldown pulse couldn't follow a cooldown. Please report this: " .. P.lastError)
+    print("|cffffd100" .. ns.TITLE .. ":|r " .. L["the cooldown pulse couldn't follow a cooldown. Please report this: %s"]
+        :format(P.lastError))
 end
 
 -- Whether it pulses: ticked on, and not running in Forever Enhanced
@@ -673,23 +675,23 @@ local function Mover()
     mover:EnableMouse(true)
     mover:RegisterForDrag("LeftButton")
     T:Flat(mover, { 0, 0, 0, .35 }, T.CONTROL_BORDER)
-    T:Paint(function(accent) mover:SetBackdropBorderColor(accent[1], accent[2], accent[3], 1) end)
+    T:Paint(mover, function(accent) mover:SetBackdropBorderColor(accent[1], accent[2], accent[3], 1) end)
     mover.icon = mover:CreateTexture(nil, "ARTWORK")
     mover.icon:SetPoint("TOPLEFT", 1, -1)
     mover.icon:SetPoint("BOTTOMRIGHT", -1, 1)
     mover.icon:SetAlpha(.3)
     T:Zoom(mover.icon)
-    -- Above and below the box, so they fit at any size.
-    mover.title = T:Heading(mover, "Cooldown pulse")
+    -- Above and below the box, so they fit at any size. Their words are set
+    -- each time it shows, in the language showing then.
+    mover.title = T:Heading(mover, "")
     mover.title:SetPoint("BOTTOM", mover, "TOP", 0, 6)
     mover.title:SetJustifyH("CENTER")
-    mover.done = T:Button(mover, "Done", 80, 22)
+    mover.done = T:Button(mover, "", 80, 22)
     mover.done:SetPoint("TOP", mover, "BOTTOM", 0, -6)
     mover.done:SetScript("OnClick", function() P:StopMove(true) end)
     mover.note = T:Text(mover, "GameFontHighlightSmall")
     mover.note:SetPoint("TOP", mover.done, "BOTTOM", 0, -4)
     mover.note:SetJustifyH("CENTER")
-    mover.note:SetText("Drag the box, then click Done or right-click it.")
     mover:SetScript("OnDragStart", function(self)
         self.dragging = true
         self:StartMoving()
@@ -730,9 +732,12 @@ end
 
 -- Shows the box, out of a fight: true, or false and why not.
 function P:StartMove()
-    if InCombatLockdown() then return false, "Finish the fight first, then move it." end
+    if InCombatLockdown() then return false, L["Finish the fight first, then move it."] end
     Mover()
     PlaceMover()
+    mover.title:SetText(L["Cooldown pulse"]:upper())
+    mover.done:SetLabel(L["Done"])
+    mover.note:SetText(L["Drag the box, then click Done or right-click it."])
     mover.icon:SetTexture(self:SampleIcon())
     mover:Show()
     if ns.window then ns.window:Hide() end

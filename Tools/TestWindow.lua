@@ -68,7 +68,7 @@ do
         .. S[w.nav.general.label].text .. " " .. S[w.nav.general].points[1][3] .. " | " .. S[w.navFrame].width,
         "general,pulse | Cooldown pulse -12 | General -44 | 150", "a short list: Cooldown pulse at the top, then General")
     Equal(Note(w.nav.pulse) .. " | " .. Note(w.nav.general), "A big icon in the middle of your screen when a cooldown is ready."
-        .. " | The tour, What's new, the Discord, the minimap button, this window's accent, update notices and Squirt's other addons.",
+        .. " | The tour, What's new, the Discord, the minimap button, this window's accent and language, update notices and Squirt's other addons.",
         "each says what it's for")
     w.nav.general:Click()
     Equal(w.selected .. " " .. tostring(S[w.pages.general].shown) .. " " .. tostring(S[w.pages.pulse].shown) .. " "
@@ -119,8 +119,8 @@ do
             headings[#headings + 1] = S[obj].text
         end
     end
-    Equal(table.concat(headings, ", "), "HELP, MINIMAP BUTTON, WINDOW ACCENT, ABOUT, MORE FROM SQUIRT",
-        "help, the minimap button, the accent, about and more from Squirt")
+    Equal(table.concat(headings, ", "), "HELP, MINIMAP BUTTON, WINDOW ACCENT, LANGUAGE, ABOUT, MORE FROM SQUIRT",
+        "help, the minimap button, the accent and the language, about and more from Squirt")
     Equal(S[w.tour.label].text .. ", " .. S[w.news.label].text .. ", " .. S[w.discord.label].text, "Take the tour, What's new, Discord",
         "the tour, What's new and the Discord, side by side")
     Equal(Note(w.tour) .. " | " .. Note(w.discord), "A short tour of this window, a page at a time. /fecp tour starts it too."
@@ -500,7 +500,8 @@ do
     table.sort(before)
     Equal(Walk("pulse"), "TURN IT ON, PICK YOUR COOLDOWNS, QUICK AND LONG, WHERE IT SHOWS, BOTH STYLES | 5 true",
         "the pulse page: the tour's four steps, then both styles' look")
-    Equal(Walk("general"), "GENERAL, MINIMAP BUTTON, WINDOW ACCENT | 3 true", "General: the tour's step, then the minimap button and the accent")
+    Equal(Walk("general"), "GENERAL, MINIMAP BUTTON, WINDOW ACCENT, LANGUAGE | 4 true",
+        "General: the tour's step, then the minimap button, the accent and the language")
     Equal(table.concat(problems, "; "), "", "each box inside the page and clear of the part it points at")
     local after = {}
     for key in pairs(ns.DEFAULTS) do after[#after + 1] = key .. "=" .. tostring(ns.Get(key)) end

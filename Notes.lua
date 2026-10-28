@@ -2,13 +2,16 @@
 -- first install has nothing new to show), then any time from What's new on
 -- the General page or /fecp new. The releases before it follow underneath.
 -- Drawn in the window's flat style. Show me what's new beside Got it tours
--- the steps the update added (Tour.lua), when it added any.
+-- the steps the update added (Tour.lua), when it added any. Its words are in
+-- the language showing (Locale.lua), the notes too.
 local _, ns = ...
-local T = ns.Theme
+local T, L = ns.Theme, ns.L
 
 -- Newest first, word for word as in CHANGELOG.txt (Tools/TestNotes.mjs checks).
 -- Notes waiting for their version number are "Unreleased". None until the
--- first release: there's nothing new to a first install.
+-- first release: there's nothing new to a first install. Each section's
+-- title and each note is looked up in ns.L as it shows, so every new one
+-- needs its Simplified Chinese in Locale.lua (Tools/TestLocale.mjs checks).
 ns.NOTES = {
     {
         version = "1.0.4",
@@ -99,7 +102,8 @@ local function Entries()
 end
 
 local function Label(version)
-    return version:match("^%d") and "Version " .. version or version
+    if version == ns.UNRELEASED then return L["Unreleased"] end
+    return version:match("^%d") and L["Version %s"]:format(version) or version
 end
 
 local window
@@ -117,7 +121,7 @@ local function Build()
     window:SetScript("OnDragStart", window.StartMoving)
     window:SetScript("OnDragStop", window.StopMovingOrSizing)
     T:Flat(window, T.BG, T.CONTROL_BORDER)
-    T:Paint(function(accent) window:SetBackdropBorderColor(accent[1], accent[2], accent[3], 1) end)
+    T:Paint(window, function(accent) window:SetBackdropBorderColor(accent[1], accent[2], accent[3], 1) end)
     window:Hide()
     -- Set before anything hooks it: setting a script later drops hooks.
     window:SetScript("OnHide", function(self)
@@ -133,7 +137,7 @@ local function Build()
     fade:SetPoint("BOTTOMRIGHT", -1, 1)
 
     local entries = Entries()
-    local heading = T:Heading(window, "What's new")
+    local heading = T:Heading(window, L["What's new"])
     heading:SetPoint("TOPLEFT", 20, -(HEADER + 18))
     window.version = T:Text(window, "GameFontHighlightSmall", T.MUTED)
     window.version:SetPoint("LEFT", heading, "RIGHT", 10, 0)
@@ -171,18 +175,18 @@ local function Build()
             gap = 12
         end
         for s, section in ipairs(entry.sections) do
-            local title = T:Heading(content, section[1])
+            local title = T:Heading(content, L[section[1]])
             title:SetWidth(TEXT)
             flow[#flow + 1] = { text = title, gap = s > 1 and 18 or gap }
             for i, item in ipairs(section[2]) do
                 local text = T:Text(content, "GameFontHighlight")
                 text:SetWidth(TEXT - BULLET)
-                text:SetText(item)
+                text:SetText(L[item])
                 -- A small accent square level with the first line.
                 local _, size = text:GetFont()
                 local dot = content:CreateTexture(nil, "ARTWORK")
                 dot:SetSize(4, 4)
-                T:Paint(function(accent) T:Fill(dot, accent) end)
+                T:Paint(dot, function(accent) T:Fill(dot, accent) end)
                 flow[#flow + 1] = { text = text, indent = BULLET, dot = dot, gap = i == 1 and 8 or 6,
                     dotY = math.max(2, math.floor((size or 12) / 2) - 1) }
             end
@@ -222,25 +226,25 @@ local function Build()
     -- there's a tour of it, then the Discord button.
     local ask = T:Text(window, "GameFontHighlightSmall")
     ask:SetPoint("BOTTOMLEFT", 20, 27)
-    ask:SetText("Found a bug or have an idea?")
+    ask:SetText(L["Found a bug or have an idea?"])
     local hint = T:Text(window, "GameFontHighlightSmall", T.MUTED)
     hint:SetPoint("BOTTOMLEFT", 20, 13)
-    hint:SetText("/fecp new shows this again.")
-    local done = T:Button(window, "Got it", 100, 24)
+    hint:SetText(L["/fecp new shows this again."])
+    local done = T:Button(window, L["Got it"], 100, 24)
     done:SetPoint("BOTTOMRIGHT", -16, 14)
-    T:Paint(function(accent) done:SetBackdropBorderColor(accent[1], accent[2], accent[3], 1) end)
+    T:Paint(done, function(accent) done:SetBackdropBorderColor(accent[1], accent[2], accent[3], 1) end)
     done:SetScript("OnClick", function() window:Hide() end)
     window.done = done
     -- Closes this for the tour, which opens the settings. Its tooltip says
     -- what it does, as the label has no room to.
-    local tour = T:Button(window, "Show me what's new", 120, 24)
+    local tour = T:Button(window, L["Show me what's new"], 120, 24)
     tour:SetPoint("RIGHT", done, "LEFT", -8, 0)
     tour:SetScript("OnClick", function()
         window:Hide()
         if ns.Tour then ns.Tour:StartNews(window.seen) end
     end)
     tour:HookScript("OnEnter", function(self)
-        T:ShowTip(self, "Show me what's new", "A quick tour of what's new, a page at a time.")
+        T:ShowTip(self, L["Show me what's new"], L["A quick tour of what's new, a page at a time."])
     end)
     tour:HookScript("OnLeave", function() T:HideTip() end)
     window.tour = tour
@@ -265,6 +269,19 @@ function ns.ShowNotes(seen)
     window:Raise()
     window:Layout()
     window.scroll:ScrollTo(0)
+end
+
+-- A new language (Window.lua ns.Remake): What's new is made again in it as
+-- it next shows, the old one hidden for good with its painters. Said back
+-- while it was open, with the version it was showing from and the old frame
+-- (where it was dragged to), so it can show again at once, in its place.
+function N:Forget()
+    if not window then return nil end
+    local open = window:IsShown() and { seen = window.seen, frame = window } or nil
+    window:Hide()
+    T:Forget(window)
+    window, ns.notes = nil, nil
+    return open
 end
 
 -- Once per version: a moment after the first login with it, and never in

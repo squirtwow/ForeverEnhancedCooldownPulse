@@ -8,6 +8,7 @@
 ## Category: UI
 ## OptionalDeps: ForeverEnhancedCooldownManager
 
+Locale.lua
 Core.lua
 SquirtVersions.lua
 Link.lua

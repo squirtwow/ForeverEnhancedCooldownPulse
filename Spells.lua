@@ -8,6 +8,7 @@
 -- /fecp window opens, and as the pulse takes over from Forever Enhanced
 -- Cooldown Manager (S:Stale).
 local _, ns = ...
+local L = ns.L
 
 local S = {}
 ns.Spells = S
@@ -25,6 +26,8 @@ local BAGS = 4
 -- the conjured Perishable potions (after the plain ones, so they show first:
 -- they don't last), and the battleground and other same-named ones.
 -- Discolored and Restored potions work differently, so they stay single items.
+-- Each name is in English, given in the language showing as the list is
+-- read (ns.L), as are "Trinket 1: ..." and "Item 123"; the game names the rest.
 local FAMILIES = {
     { key = "family:healthstone", name = "Healthstones", items = {
         19004, 5512, 19005, -- Minor
@@ -123,7 +126,7 @@ end
 local function ItemName(itemID, link)
     local name = Text(link) and link:match("%[(.-)%]")
     if not name and C_Item and C_Item.GetItemNameByID then name = Text(C_Item.GetItemNameByID(itemID)) end
-    return name or ("Item " .. itemID)
+    return name or L["Item %d"]:format(itemID)
 end
 
 local function AddItem(itemID, link, icon)
@@ -190,7 +193,7 @@ end
 
 local function AddFamily(family)
     local itemID = shown[family.key] or family.items[1]
-    local entry = Add({ key = family.key, name = family.name, kind = "family", family = family, itemID = itemID,
+    local entry = Add({ key = family.key, name = L[family.name], kind = "family", family = family, itemID = itemID,
         icon = C_Item.GetItemIconByID and C_Item.GetItemIconByID(itemID) })
     S:Pick(entry)
     return entry
@@ -227,7 +230,7 @@ local function ScanItems()
         local itemID = GetInventoryItemID("player", slot)
         if itemID then
             local link = GetInventoryItemLink("player", slot)
-            Add({ key = "slot:" .. slot, name = "Trinket " .. index .. ": " .. ItemName(itemID, link), kind = "slot",
+            Add({ key = "slot:" .. slot, name = L["Trinket %d: %s"]:format(index, ItemName(itemID, link)), kind = "slot",
                 slot = slot, itemID = itemID, icon = GetInventoryItemTexture("player", slot) })
         end
     end
