@@ -164,7 +164,7 @@ function T:ShowTip(owner, title, text, placement)
         tip.text:SetWordWrap(true)
         self.tip = tip
     end
-    tip.title:SetText(title:upper())
+    tip.title:SetText(ns.Upper(title))
     -- Wide enough for the title as well as the text: the addon's own name in
     -- capitals is wider than the text column.
     local width = math.max(TIP_WIDTH, math.ceil(tip.title:GetStringWidth() or 0))
@@ -234,7 +234,7 @@ end
 -- Small capitals in the accent, over each part of the window.
 function T:Heading(parent, label)
     local text = self:Text(parent, "GameFontNormalSmall")
-    text:SetText(label:upper())
+    text:SetText(ns.Upper(label))
     self:Paint(text, function(accent) text:SetTextColor(accent[1], accent[2], accent[3]) end)
     return text
 end
@@ -371,6 +371,68 @@ function T:Segmented(parent, items, width, onSelect)
     end
     self:Paint(bar, function() if bar.selected then bar:SetSelected(bar.selected) end end)
     return bar
+end
+
+-- A list to pick one from, a row each, down a panel: the tick box's look,
+-- the chosen row's box filled with the accent and the row lit as the
+-- window's list lights its page. items: { key, label, detail }, detail a
+-- muted word at the row's right. The rows are its buttons, in order, each
+-- with its key; clicking one calls onSelect(key).
+function T:RadioList(parent, items, width, rowHeight, onSelect)
+    local list = CreateFrame("Frame", nil, parent, "BackdropTemplate")
+    list:SetSize(width, #items * rowHeight + 2)
+    self:Flat(list, T.PANEL, T.BORDER)
+    list.buttons = {}
+    for i, item in ipairs(items) do
+        local row = CreateFrame("Button", nil, list)
+        row:SetSize(width - 2, rowHeight)
+        row:SetPoint("TOPLEFT", 1, -1 - (i - 1) * rowHeight)
+        row.fill = row:CreateTexture(nil, "BACKGROUND")
+        row.fill:SetAllPoints()
+        Colour(row.fill, T.SELECTED)
+        row.mark = row:CreateTexture(nil, "ARTWORK")
+        row.mark:SetPoint("TOPLEFT")
+        row.mark:SetPoint("BOTTOMLEFT")
+        row.mark:SetWidth(3)
+        self:Paint(row.mark, function(accent) Colour(row.mark, accent) end)
+        local hover = row:CreateTexture(nil, "HIGHLIGHT")
+        hover:SetAllPoints()
+        hover:SetColorTexture(1, 1, 1, .04)
+        local box = CreateFrame("Frame", nil, row, "BackdropTemplate")
+        box:SetSize(12, 12)
+        box:SetPoint("LEFT", 12, 0)
+        self:Flat(box, T.FIELD, { .33, .33, .33, 1 })
+        box:EnableMouse(false)
+        local dot = box:CreateTexture(nil, "ARTWORK")
+        dot:SetPoint("TOPLEFT", 2, -2)
+        dot:SetPoint("BOTTOMRIGHT", -2, 2)
+        self:Paint(dot, function(accent) Colour(dot, accent) end)
+        row.box, row.dot = box, dot
+        row.label = self:Text(row, "GameFontHighlight")
+        row.label:SetPoint("LEFT", box, "RIGHT", 8, 0)
+        row.label:SetText(item.label)
+        if item.detail then
+            row.detail = self:Text(row, "GameFontHighlightSmall", T.MUTED)
+            row.detail:SetPoint("RIGHT", -10, 0)
+            row.detail:SetJustifyH("RIGHT")
+            row.detail:SetText(item.detail)
+        end
+        row.key = item.key
+        row:SetScript("OnClick", function() onSelect(item.key) end)
+        row:SetScript("OnEnter", function() box:SetBackdropBorderColor(.6, .6, .6, 1) end)
+        row:SetScript("OnLeave", function() box:SetBackdropBorderColor(.33, .33, .33, 1) end)
+        list.buttons[i] = row
+    end
+    function list:SetSelected(key)
+        self.selected = key
+        for _, row in ipairs(self.buttons) do
+            local chosen = row.key == key
+            row.fill:SetShown(chosen)
+            row.mark:SetShown(chosen)
+            row.dot:SetShown(chosen)
+        end
+    end
+    return list
 end
 
 -- A flat text box with a grey placeholder while empty.

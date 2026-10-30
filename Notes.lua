@@ -11,7 +11,7 @@ local T, L = ns.Theme, ns.L
 -- Notes waiting for their version number are "Unreleased". None until the
 -- first release: there's nothing new to a first install. Each section's
 -- title and each note is looked up in ns.L as it shows, so every new one
--- needs its Simplified Chinese in Locale.lua (Tools/TestLocale.mjs checks).
+-- needs its line in every file in Locales (Tools/TestLocale.mjs checks).
 ns.NOTES = {
     {
         version = "1.0.4",
@@ -272,13 +272,15 @@ function ns.ShowNotes(seen)
 end
 
 -- A new language (Window.lua ns.Remake): What's new is made again in it as
--- it next shows, the old one hidden for good with its painters. Said back
--- while it was open, with the version it was showing from and the old frame
--- (where it was dragged to), so it can show again at once, in its place.
+-- it next shows, the old one hidden for good with its painters and events.
+-- Said back while it was open, with the version it was showing from and the
+-- old frame (where it was dragged to), so it can show again at once, in its
+-- place.
 function N:Forget()
     if not window then return nil end
     local open = window:IsShown() and { seen = window.seen, frame = window } or nil
     window:Hide()
+    window:UnregisterAllEvents() -- the screen's size, which only the new one needs
     T:Forget(window)
     window, ns.notes = nil, nil
     return open

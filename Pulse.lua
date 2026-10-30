@@ -735,7 +735,7 @@ function P:StartMove()
     if InCombatLockdown() then return false, L["Finish the fight first, then move it."] end
     Mover()
     PlaceMover()
-    mover.title:SetText(L["Cooldown pulse"]:upper())
+    mover.title:SetText(ns.Upper(L["Cooldown pulse"]))
     mover.done:SetLabel(L["Done"])
     mover.note:SetText(L["Drag the box, then click Done or right-click it."])
     mover.icon:SetTexture(self:SampleIcon())

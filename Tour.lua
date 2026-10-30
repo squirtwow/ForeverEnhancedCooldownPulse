@@ -184,9 +184,9 @@ local HELP = {
         side = "below",
     },
     {
-        page = "general",
+        page = "language",
         title = "Language",
-        text = "English or Simplified Chinese for this window, What's new and the addon's lines in chat. Auto follows"
+        text = "The language of this window, What's new and the addon's lines in chat. Auto follows"
             .. " your game's language. It changes at once.",
         target = function(w) return w.language end,
         side = "below",
@@ -371,7 +371,7 @@ local function Show(i)
     if step.try then
         text = text .. "\n\n|cff" .. T:Hex(T:Accent()) .. (already and Words(step.alreadyText, window) or L[step.try]) .. "|r"
     end
-    box.title:SetText(L[step.title]:upper())
+    box.title:SetText(ns.Upper(L[step.title]))
     box.count:SetText(L["%d of %d"]:format(i, #steps))
     box.count:Show()
     box.text:SetText(text)
@@ -477,7 +477,7 @@ end
 function Tour:Welcome()
     if not Ready() then return end
     steps, index, started, welcome, news, here = nil, nil, nil, true, nil, nil
-    box.title:SetText(L["Welcome"]:upper())
+    box.title:SetText(ns.Upper(L["Welcome"]))
     box.count:Hide()
     box.text:SetText(L["New to %s? A quick tour shows you the basics, a page at a time. It takes about a minute."]:format(ns.TITLE))
     box.back:Hide()

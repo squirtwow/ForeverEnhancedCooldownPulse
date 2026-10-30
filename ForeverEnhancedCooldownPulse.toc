@@ -9,6 +9,12 @@
 ## OptionalDeps: ForeverEnhancedCooldownManager
 
 Locale.lua
+Locales\deDE.lua
+Locales\frFR.lua
+Locales\esES.lua
+Locales\ptBR.lua
+Locales\ruRU.lua
+Locales\zhCN.lua
 Core.lua
 SquirtVersions.lua
 Link.lua

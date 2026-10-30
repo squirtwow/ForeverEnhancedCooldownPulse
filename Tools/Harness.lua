@@ -13,7 +13,8 @@
 -- For the pulse: a spellbook (H.Book), trinkets, bags and item counts,
 -- cooldowns on hold, the game's sounds, and Forever Enhanced Cooldown
 -- Manager loaded or not, with its saved settings (H.Manager). The game's
--- language is H.locale (GetLocale), and Chinese text is measured wide.
+-- language is H.locale (GetLocale), and text is measured by its script
+-- (Chinese wide, Cyrillic a little wider than English; see Letters).
 local H = {}
 
 H.checks = 0
@@ -37,8 +38,10 @@ function H.True(value, label)
     if not value then error(label .. ": expected true, got " .. tostring(value), 2) end
 end
 
--- The addon's files, in the TOC's order (Tools/TestRules.mjs checks they match).
-H.FILES = { "Locale.lua", "Core.lua", "SquirtVersions.lua", "Link.lua", "Theme.lua", "Ranks.lua", "Spells.lua", "Pulse.lua", "PulsePage.lua", "ProfileMenu.lua",
+-- The addon's files, in the TOC's order (Tools/TestRules.mjs checks they
+-- match; the TOC writes Locales\ with the game's backslash).
+H.FILES = { "Locale.lua", "Locales/deDE.lua", "Locales/frFR.lua", "Locales/esES.lua", "Locales/ptBR.lua", "Locales/ruRU.lua",
+    "Locales/zhCN.lua", "Core.lua", "SquirtVersions.lua", "Link.lua", "Theme.lua", "Ranks.lua", "Spells.lua", "Pulse.lua", "PulsePage.lua", "ProfileMenu.lua",
     "Window.lua", "Tour.lua", "MinimapButton.lua", "Notes.lua", "Debug.lua" }
 H.ADDON = "ForeverEnhancedCooldownPulse"
 H.MANAGER = "ForeverEnhancedCooldownManager"
@@ -46,13 +49,24 @@ H.MANAGER = "ForeverEnhancedCooldownManager"
 -- says otherwise (kept over each new environment until it changes it back).
 H.locale = "enUS"
 
--- Text's width in letters: a letter of Chinese (any letter of more than one
--- byte) is as wide as two of English, as the game draws it.
+-- Text's width in letters, as the game draws each script: a letter with an
+-- accent (two bytes) as wide as one of English, one of Cyrillic (two bytes,
+-- led by 0xD0 to 0xD3) a little wider, and one of Chinese (three bytes or
+-- more, full-width punctuation too) as wide as two.
+local CYRILLIC = 1.1
 local function Letters(text)
     local count = 0
     for i = 1, #text do
         local byte = text:byte(i)
-        if byte < 128 then count = count + 1 elseif byte >= 192 then count = count + 2 end
+        if byte < 128 then
+            count = count + 1
+        elseif byte >= 0xD0 and byte <= 0xD3 then
+            count = count + CYRILLIC
+        elseif byte >= 0xC0 and byte < 0xE0 then
+            count = count + 1
+        elseif byte >= 0xE0 then
+            count = count + 2
+        end
     end
     return count
 end

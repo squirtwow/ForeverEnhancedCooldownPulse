@@ -25,6 +25,13 @@ async function rootFiles(pattern) {
     .filter(entry => entry.isFile() && pattern.test(entry.name)).map(entry => entry.name).sort();
 }
 
+// The addon's own files: the folder's, and each language's words in Locales/.
+async function addonFiles(pattern) {
+  const locales = (await readdir(new URL('Locales/', root), { withFileTypes: true }))
+    .filter(entry => entry.isFile() && pattern.test(entry.name)).map(entry => `Locales/${entry.name}`);
+  return [...await rootFiles(pattern), ...locales].sort();
+}
+
 // The addon's code with its comments and strings blanked out (lines kept),
 // so only code is checked.
 function codeOnly(lua) {
@@ -76,7 +83,7 @@ function literals(lua) {
 }
 
 async function addonCode() {
-  const files = await rootFiles(/\.lua$/i);
+  const files = await addonFiles(/\.lua$/i);
   assert.ok(files.length >= 13, 'the addon files found');
   return Promise.all(files.map(async name => ({ name, source: await read(name), code: codeOnly(await read(name)) })));
 }
@@ -100,12 +107,18 @@ test('the TOC loads every file once, in order, for Forever, by Squirt', async ()
   assert.match(toc, /^## Category: UI$/m, 'filed as Forever Enhanced Cooldown Manager is');
   assert.match(toc, /^## OptionalDeps: ForeverEnhancedCooldownManager$/m, 'that addon first, when it\'s there, so the link finds it');
   assert.doesNotMatch(toc, /X-Curse-Project-ID/, 'no CurseForge project yet');
-  const listed = toc.split(/\r?\n/).filter(line => line && !line.startsWith('#'));
-  assert.deepEqual([...listed].sort(), await rootFiles(/\.lua$/i), 'every .lua file in the folder, and no other');
+  const lines = toc.split(/\r?\n/).filter(line => line && !line.startsWith('#'));
+  assert.ok(lines.every(line => !line.includes('/')), 'folders written with the game\'s backslash');
+  const listed = lines.map(line => line.replace(/\\/g, '/'));
+  assert.deepEqual([...listed].sort(), await addonFiles(/\.lua$/i), 'every .lua file in the folder and Locales, and no other');
   assert.equal(new Set(listed).size, listed.length, 'each once');
   const at = name => listed.indexOf(name);
-  assert.equal(at('Locale.lua'), 0, 'the words first, so every file can look them up');
-  assert.equal(at('Core.lua'), 1, 'then the settings');
+  const locales = listed.filter(name => name.startsWith('Locales/'));
+  assert.deepEqual(locales, ['Locales/deDE.lua', 'Locales/frFR.lua', 'Locales/esES.lua', 'Locales/ptBR.lua', 'Locales/ruRU.lua',
+    'Locales/zhCN.lua'], 'each language\'s words');
+  assert.equal(at('Locale.lua'), 0, 'the lookup first, so every file can look words up');
+  assert.deepEqual(locales.map(at), locales.map((_, i) => 1 + i), 'then every language\'s words, which it gathers');
+  assert.equal(at('Core.lua'), 1 + locales.length, 'then the settings, which pick the language');
   assert.ok(at('Link.lua') < at('Pulse.lua') && at('Theme.lua') < at('Pulse.lua'), 'the link and the look before the pulse, which uses both');
   assert.ok(at('Ranks.lua') < at('Spells.lua') && at('Spells.lua') < at('Pulse.lua'), 'the game data and the list before the pulse');
   assert.ok(at('PulsePage.lua') < at('Window.lua') && at('ProfileMenu.lua') < at('Window.lua'), 'the page and the profile menu before the window');
@@ -395,7 +408,7 @@ test('no function is defined twice in one file', async () => {
 test('the art: every file used, and each one the game can load', async () => {
   const media = (await readdir(new URL('Media/', root))).sort();
   assert.deepEqual(media, ['EraUIIcon.tga', 'FECMIcon.tga', 'FECPIcon.tga', 'Heart.tga', 'MinimapIcon.tga', 'TourArrow.tga']);
-  const sources = (await Promise.all((await rootFiles(/\.(lua|toc)$/i)).map(read))).join('\n');
+  const sources = (await Promise.all((await addonFiles(/\.(lua|toc)$/i)).map(read))).join('\n');
   const sizes = {};
   for (const file of media) {
     assert.ok(sources.includes(file), `${file} is used`);
@@ -436,7 +449,7 @@ test('the art: every file used, and each one the game can load', async () => {
 });
 
 test('no em dashes in anything players read', async () => {
-  for (const name of await rootFiles(/\.(lua|toc|md|txt)$/i)) {
+  for (const name of await addonFiles(/\.(lua|toc|md|txt)$/i)) {
     assert.doesNotMatch(await read(name), /[—–]/, name);
   }
   const escaped = /\\226\\128\\14[78]|\\x[eE]2\\x80\\x9[34]|\\u\{0*201[34]\}/;
@@ -492,7 +505,7 @@ function ownWords(words) {
 }
 
 test('no other addon is named anywhere', async () => {
-  const names = [...await rootFiles(/\.(lua|toc|md|txt|html)$|^\.pkgmeta$|^\.gitignore$/i)];
+  const names = [...await addonFiles(/\.(lua|toc|md|txt|html)$|^\.pkgmeta$|^\.gitignore$/i)];
   for (const name of await readdir(new URL('Tools/', root))) {
     if (/\.(lua|mjs|js|html)$/i.test(name)) names.push(`Tools/${name}`);
   }
@@ -521,7 +534,7 @@ test('no other addon is named anywhere', async () => {
 // Forever it then breaks on your hidden health every frame it shows a player
 // (thousands of errors, 2026-10-06). The addon's own (Theme.lua T:ShowTip).
 test("never the game's tooltip", async () => {
-  const names = (await readdir(root)).filter(name => name.endsWith('.lua'));
+  const names = await addonFiles(/\.lua$/i);
   const using = [];
   for (const name of names) if (/\bGameTooltip\b/.test(noComments(await read(name)))) using.push(name);
   assert.deepEqual(using, [], 'files using GameTooltip');

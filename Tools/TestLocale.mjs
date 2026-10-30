@@ -1,11 +1,14 @@
-// The words in Simplified Chinese (Locale.lua), checked straight from the
-// source: every word the addon looks up (ns.L["..."], and the English kept
-// in tables for the names, the notes, the tour and More from Squirt, looked
-// up where they show) has its Chinese, and Locale.lua has nothing nobody
-// looks up; each keeps its %s, %d and the rest in the same order, its colour
-// and icon codes and its line breaks; none is empty or has an em dash; and
-// the Chinese uses full-width punctuation. Tools/TestLocale.lua shows the
-// window in Chinese and checks no English is left on it.
+// Every language's words (Locales/<code>.lua, gathered by Locale.lua),
+// checked straight from the source: every word the addon looks up
+// (ns.L["..."], and the English kept in tables for the names, the notes,
+// the tour and More from Squirt, looked up where they show) is in each
+// file, and no file has a word nobody looks up; each keeps its %s, %d and
+// the rest in the same order, its colour and icon codes and its line
+// breaks; none is empty or has an em dash; the Chinese uses full-width
+// punctuation. Then, each language on its own, that nothing is still left
+// in English but the few words that are rightly the same (SAME): that one
+// fails until the language's translator is done. Tools/TestLocale.lua
+// shows the window in every language and checks no English is left on it.
 // Run with: node --test Tools/TestLocale.mjs
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -108,15 +111,20 @@ function values(list, except = []) {
   return found;
 }
 
+// The files the game loads, in order, folders with a forward slash.
 const shipped = async () => (await read('ForeverEnhancedCooldownPulse.toc')).split(/\r?\n/)
-  .filter(line => line && !line.startsWith('#'));
+  .filter(line => line && !line.startsWith('#')).map(line => line.replace(/\\/g, '/'));
+
+// Each language's file: its code and path, as the .toc loads them.
+const LOCALES = ['deDE', 'frFR', 'esES', 'ptBR', 'ruRU', 'zhCN'];
+const localeFile = code => `Locales/${code}.lua`;
 
 // What the addon looks up, by file: as written, and the English its tables keep.
 async function used() {
   const words = new Map();
   const add = (file, list) => list.forEach(text => words.set(text, words.get(text) || file));
   for (const file of await shipped()) {
-    if (file === 'Locale.lua') continue;
+    if (file === 'Locale.lua' || file.startsWith('Locales/')) continue;
     const list = tokens(await read(file));
     add(file, lookups(list));
     if (file === 'Core.lua') {
@@ -137,15 +145,15 @@ async function used() {
   return words;
 }
 
-// Locale.lua's Simplified Chinese: each English and its Chinese, in order.
-async function chinese() {
-  const list = tokens(await read('Locale.lua'));
-  const inside = block(list, 'LANGUAGES . zhCN = {');
+// A language's file: each English and its text in that language, in order.
+async function pairsOf(code) {
+  const list = tokens(await read(localeFile(code)));
+  const inside = block(list, `ns . LOCALES . ${code} = {`);
   const pairs = [];
   for (let i = 0; i < inside.length; i++) {
     if (inside[i].value === '[' && inside[i + 1]?.type === 'string' && inside[i + 2]?.value === ']' && inside[i + 3]?.value === '=') {
       const text = joined(inside, i + 4);
-      assert.ok(text, `the Chinese for "${inside[i + 1].value}" is text`);
+      assert.ok(text, `${code}: the text for "${inside[i + 1].value}" is text`);
       pairs.push([inside[i + 1].value, text.text]);
       i = text.next - 1;
     }
@@ -155,54 +163,96 @@ async function chinese() {
 
 const FORMAT = /%[-+ #0]*\d*(?:\.\d+)?[cdiouxXeEfgGqs%]/g;
 const CODES = /\|c[0-9a-fA-F]{8}|\|r|\|T|\|t|\n/g;
-const CJK = /[\u3000-\u303f\u4e00-\u9fff\uff00-\uffef]/;
+const CJK = /[　-〿一-鿿＀-￯]/;
 
-test('every word the addon looks up has its Simplified Chinese', async () => {
-  const words = await used();
-  assert.ok(words.size > 250, `the words found (${words.size})`);
-  const zh = new Map(await chinese());
-  const missing = [...words].filter(([text]) => !zh.has(text)).map(([text, file]) => `${file}: ${JSON.stringify(text)}`);
-  assert.deepEqual(missing, [], 'looked up, with no Chinese');
+// The words that can rightly be the same as the English: names, in every
+// language (NAMES); and in the languages written in Latin letters, words
+// some of them share with English too (Orange, General, Version %s, Long,
+// Fanfare, %g min and the seconds, " (experimental)"). Russian and Chinese
+// write those their own way. The same lists as Tools/TestLocale.lua's,
+// checked below.
+const NAMES = ['Discord', 'CurseForge', 'GitHub', 'EraUI', 'Forever Enhanced Cooldown Manager', 'OK'];
+const SAME = [...NAMES, '%gs', '%.1fs', '%g min', 'Item %d', 'Version %s', 'General', 'Long', 'Orange', 'Gold', 'Fanfare', 'Synth',
+  ' (experimental)'];
+const LATIN = ['deDE', 'frFR', 'esES', 'ptBR'];
+const allowed = code => LATIN.includes(code) ? SAME : NAMES;
+
+test('the .toc loads every language\'s file, and only those', async () => {
+  const files = (await shipped()).filter(file => file.startsWith('Locales/'));
+  assert.deepEqual(files, LOCALES.map(localeFile));
 });
 
-test('Locale.lua has nothing nobody looks up, and each word once', async () => {
-  const words = await used();
-  const pairs = await chinese();
-  assert.deepEqual(pairs.map(([text]) => text).filter(text => !words.has(text)), [], 'Chinese for words never looked up');
-  const seen = new Set();
-  assert.deepEqual(pairs.map(([text]) => text).filter(text => seen.has(text) || !seen.add(text)), [], 'given twice');
+for (const code of LOCALES) {
+  test(`${code}: every word the addon looks up is there`, async () => {
+    const words = await used();
+    assert.ok(words.size > 250, `the words found (${words.size})`);
+    const have = new Map(await pairsOf(code));
+    const missing = [...words].filter(([text]) => !have.has(text)).map(([text, file]) => `${file}: ${JSON.stringify(text)}`);
+    assert.deepEqual(missing, [], 'looked up, and not in the file');
+  });
+
+  test(`${code}: nothing nobody looks up, and each word once`, async () => {
+    const words = await used();
+    const pairs = await pairsOf(code);
+    assert.deepEqual(pairs.map(([text]) => text).filter(text => !words.has(text)), [], 'words never looked up');
+    const seen = new Set();
+    assert.deepEqual(pairs.map(([text]) => text).filter(text => seen.has(text) || !seen.add(text)), [], 'given twice');
+  });
+
+  test(`${code}: each keeps its placeholders, codes and line breaks, in order`, async () => {
+    const wrong = [];
+    for (const [english, text] of await pairsOf(code)) {
+      const a = english.match(FORMAT) || [], b = text.match(FORMAT) || [];
+      if (a.join(' ') !== b.join(' ')) wrong.push(`${english}: ${a.join(' ')} vs ${b.join(' ')}`);
+      const c = english.match(CODES) || [], d = text.match(CODES) || [];
+      if (c.join(' ') !== d.join(' ')) wrong.push(`${english}: codes ${JSON.stringify(c)} vs ${JSON.stringify(d)}`);
+    }
+    assert.deepEqual(wrong, []);
+  });
+
+  test(`${code}: none empty, none with an em dash${code === 'zhCN' ? ', in full-width punctuation' : ''}`, async () => {
+    const wrong = [];
+    for (const [english, text] of await pairsOf(code)) {
+      if (!text.trim()) wrong.push(`${english}: empty`);
+      if (/[—–]/.test(english + text)) wrong.push(`${english}: an em dash`);
+      if (code !== 'zhCN') continue;
+      if (!CJK.test(text)) wrong.push(`${english}: no Chinese in ${text}`);
+      // ASCII punctuation beside Chinese: a full stop, comma, colon, question
+      // or exclamation mark, or brackets, which Chinese writes full width.
+      const plain = text.replace(FORMAT, 'X').replace(/\|c[0-9a-fA-F]{8}|\|r|\|T.*?\|t/g, '');
+      if (/[一-鿿）」][,.:;!?()]|[,.:;!?()][一-鿿（「]|[,.:;!?]$/.test(plain)) wrong.push(`${english}: ASCII punctuation in ${text}`);
+    }
+    assert.deepEqual(wrong, []);
+  });
+}
+
+// Fails while a translator is still at work: each language on its own, so
+// the run says which are done.
+for (const code of LOCALES) {
+  test(`${code}: nothing left in English (fails until it's translated)`, async () => {
+    const left = (await pairsOf(code)).filter(([english, text]) => text === english && !allowed(code).includes(english));
+    assert.equal(left.length, 0, `${left.length} still the same as their English, the first: `
+      + left.slice(0, 5).map(([english]) => JSON.stringify(english)).join(', '));
+  });
+}
+
+test('the words that can be the same are the same lists in Tools/TestLocale.lua', async () => {
+  const list = tokens(await read('Tools/TestLocale.lua'));
+  assert.deepEqual(values(block(list, 'local NAMES = {')), NAMES);
+  assert.deepEqual(values(block(list, 'local SAME = {')), SAME.slice(NAMES.length), 'and SAME, after the names');
+  assert.match(await read('Tools/TestLocale.lua'), /local LATIN = \{ deDE = true, frFR = true, esES = true, ptBR = true \}/);
 });
 
-test('each Chinese keeps its placeholders, codes and line breaks, in order', async () => {
-  const wrong = [];
-  for (const [english, zh] of await chinese()) {
-    const a = english.match(FORMAT) || [], b = zh.match(FORMAT) || [];
-    if (a.join(' ') !== b.join(' ')) wrong.push(`${english}: ${a.join(' ')} vs ${b.join(' ')}`);
-    const c = english.match(CODES) || [], d = zh.match(CODES) || [];
-    if (c.join(' ') !== d.join(' ')) wrong.push(`${english}: codes ${JSON.stringify(c)} vs ${JSON.stringify(d)}`);
-  }
-  assert.deepEqual(wrong, []);
-});
-
-test('none empty, none with an em dash, the Chinese in full-width punctuation', async () => {
-  const wrong = [];
-  for (const [english, zh] of await chinese()) {
-    if (!zh.trim()) wrong.push(`${english}: empty`);
-    if (/[—–]/.test(english + zh)) wrong.push(`${english}: an em dash`);
-    if (!CJK.test(zh)) wrong.push(`${english}: no Chinese in ${zh}`);
-    // ASCII punctuation beside Chinese: a full stop, comma, colon, question
-    // or exclamation mark, or brackets, which Chinese writes full width.
-    const plain = zh.replace(FORMAT, 'X').replace(/\|c[0-9a-fA-F]{8}|\|r|\|T.*?\|t/g, '');
-    if (/[\u4e00-\u9fff\uff09\u300d][,.:;!?()]|[,.:;!?()][\u4e00-\u9fff\uff08\u300c]|[,.:;!?]$/.test(plain)) wrong.push(`${english}: ASCII punctuation in ${zh}`);
-  }
-  assert.deepEqual(wrong, []);
-});
-
-test('the language choice: Auto, English or Simplified Chinese, Auto by default', async () => {
+test('the language choice: Auto by default, every language by its own name, Auto by the game', async () => {
   const core = await read('Core.lua');
   assert.match(core, /language = "auto", --/, 'Auto by default');
   const locale = await read('Locale.lua');
-  assert.match(locale, /ns\.LANGUAGE_KEYS = \{ "auto", "enUS", "zhCN" \}/);
+  assert.match(locale, /ns\.LANGUAGE_KEYS = \{ "auto", "enUS", "deDE", "frFR", "esES", "ptBR", "ruRU", "zhCN" \}/);
+  const names = values(block(tokens(locale), 'ns . LANGUAGE_NAMES = {'));
+  assert.deepEqual(names, ['English', 'Deutsch', 'Français', 'Español', 'Português (Brasil)', 'Русский', '简体中文'],
+    'each language by its own name, never looked up');
   assert.match(locale, /local game = GetLocale and GetLocale\(\)/, 'Auto asks the game');
-  assert.match(await read('Window.lua'), /key == "zhCN" and "简体中文" or "English"/, 'each language by its own name');
+  assert.match(locale, /local GAME = \{ deDE = "deDE", frFR = "frFR", esES = "esES", esMX = "esES", ptBR = "ptBR", ruRU = "ruRU", zhCN = "zhCN" \}/,
+    'one Spanish for Spain and Latin America; any other game English');
+  assert.match(await read('Window.lua'), /label = names\[key\]/, 'the list shows the names as they are');
 });

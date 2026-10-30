@@ -25,18 +25,20 @@ local SCREEN_MAX = 172 -- and its widest, clear of UP CLOSE on a very wide scree
 local CLOSE, CLOSE_BOX = 40, 66 -- the up close preview's icon, and its box
 local REST = .6 -- the previews rest this long between pulses
 
--- A cooldown in plain words: "45s", "3 min", "1.5 min", "1 hour".
+-- A cooldown in plain words: "45s", "3 min", "1.5 min", "1 hour", with the
+-- language's decimal mark.
 local function Long(seconds)
-    if seconds < 60 then return L["%gs"]:format(seconds) end
-    if seconds < 3600 then return L["%g min"]:format(math.floor(seconds / 6 + .5) / 10) end
+    if seconds < 60 then return ns.Decimal(L["%gs"]:format(seconds)) end
+    if seconds < 3600 then return ns.Decimal(L["%g min"]:format(math.floor(seconds / 6 + .5) / 10)) end
     local hours = math.floor(seconds / 360 + .5) / 10
-    return (hours == 1 and L["%g hour"] or L["%g hours"]):format(hours)
+    return ns.Decimal((hours == 1 and L["%g hour"] or L["%g hours"]):format(hours))
 end
 ns.PulseLong = Long
 
 -- A slider whose value reads in its own words (format gives them), with
 -- room for "160%" up to its track. wide: a little more room, its track
--- ending sooner, for seconds in Chinese ("2.5秒").
+-- ending sooner, for seconds in a language that writes them its own way
+-- ("2.5秒", "2.5 s").
 local function Worded(slider, format, wide)
     slider.value:SetWidth(wide and 44 or 36)
     if wide then slider.track:SetPoint("RIGHT", -48, 0) end
@@ -90,7 +92,7 @@ local function BuildTray(window, page, inner)
     local function Caption(text, x)
         local caption = T:Text(tray, "GameFontHighlightSmall", T.MUTED)
         caption:SetPoint("TOPLEFT", x, -8)
-        caption:SetText(text:upper())
+        caption:SetText(ns.Upper(text))
     end
     Caption(L["On your screen"], 12)
     Caption(L["Up close"], 196)
@@ -198,7 +200,7 @@ local function BuildOptions(window, page, inner)
     -- Sliders, each saving its setting; one of a style's shows only while
     -- that style is picked under Edit.
     page.sliders, page.slider = {}, {}
-    local function Seconds(value) return L["%.1fs"]:format(value / 10) end
+    local function Seconds(value) return ns.Decimal(L["%.1fs"]:format(value / 10)) end
     local function Percent(value) return value .. "%" end
     local function Slider(label, key, limits, step, x, y, style, note, format)
         local slider = T:Slider(options, label, limits, step, x == 0 and COLUMN - 16 or inner - COLUMN, function(value)
@@ -207,7 +209,7 @@ local function BuildOptions(window, page, inner)
         end, LABEL)
         slider:SetPoint("TOPLEFT", x, y)
         slider.key, slider.style = key, style
-        if format then Worded(slider, format, format == Seconds and ns.Language() == "zhCN") end
+        if format then Worded(slider, format, format == Seconds and L["%.1fs"] ~= "%.1fs") end
         window:Hint(slider, note)
         page.sliders[#page.sliders + 1] = slider
         page.slider[key] = slider
@@ -403,7 +405,7 @@ local function BuildList(window, page, inner)
             row:SetHeight(HEADER_ROW)
             row:ClearAllPoints()
             row:SetPoint("TOPLEFT", 0, -y)
-            row.header:SetText(text:upper())
+            row.header:SetText(ns.Upper(text))
             row.header:Show()
             for _, part in ipairs({ row.check, row.icon, row.name, row.long, row.style }) do part:Hide() end
             row.key, row.item, row.bags = nil, nil, nil

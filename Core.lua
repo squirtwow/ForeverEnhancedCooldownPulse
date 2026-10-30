@@ -78,7 +78,7 @@ ns.DEFAULTS = {
     minimapX = 0, -- where it sits while free-floating: from the middle of the screen
     minimapY = 0,
     updateNotice = true, -- a line in chat when a newer version is out (General page; SquirtVersions.lua)
-    language = "auto", -- the words the addon shows (General page; Locale.lua): the game's, English or Simplified Chinese
+    language = "auto", -- the words the addon shows (Language page; Locale.lua): the game's (Auto), or one by hand
 }
 -- Number settings, each within its limits: min, max, default.
 ns.MINIMAP_ANGLE = { 0, 359, 288 }
@@ -524,7 +524,7 @@ end
 
 local Relabel -- below, with the entry in Options > AddOns
 
--- The language chosen (General page), shown at once with no reload: the
+-- The language chosen (Language page), shown at once with no reload: the
 -- words change (Locale.lua), the entry in Options > AddOns takes them, and
 -- the window, What's new and the tour are made again in them (Window.lua
 -- ns.Remake). The rest takes them the next time it shows or speaks. Your

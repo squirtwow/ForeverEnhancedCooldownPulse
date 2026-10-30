@@ -12,6 +12,7 @@ local T, L = ns.Theme, ns.L
 -- narrower list for just the two.
 local WIDTH, HEIGHT = 790, 560
 local HEADER, FOOTER, NAV = 42, 28, 150
+local NOTE_WIDTH = WIDTH - 260 -- the footer's note, on the right
 local HEART = "Heart.tga" -- white on clear, tinted to the accent in the footer's credit
 
 -- A list's scroll thumb, wherever there's one: the cooldowns and the profiles.
@@ -63,8 +64,14 @@ local function CopyLink(title, url, note)
         copyBox = box
     end
     copyBox.url = url
-    copyBox.title:SetText(title:upper())
+    copyBox.title:SetText(ns.Upper(title))
     copyBox.note:SetText(note or Copy())
+    -- A note in three lines (a language with longer words) moves the link
+    -- down and makes the box taller, clear of it; in two it stays as it is.
+    local extra = math.max(0, math.ceil(copyBox.note:GetStringHeight() or 0) - 26)
+    copyBox.input:ClearAllPoints()
+    copyBox.input:SetPoint("TOPLEFT", 16, -(72 + extra))
+    copyBox:SetHeight(136 + extra)
     copyBox.close:SetLabel(L["Close"])
     copyBox:Show()
     copyBox:Raise()
@@ -178,27 +185,43 @@ local function MoreCard(window, page, more, y)
     return card
 end
 
--- The language: the game's (Auto), or one by hand, each by its own name so
--- it can be found whichever is showing. Auto, the longest, is wider.
-local LANGUAGE_WIDTHS = { auto = 150, enUS = 80, zhCN = 80 }
+-- What the language covers, and what Auto picks on which game: under the
+-- list, and Auto's note.
+local function LanguageNote()
+    return L["The language of this window, What's new and the addon's lines in chat. Auto follows your game's language,"
+        .. " with one Spanish for Spain and Latin America; Traditional Chinese and any other game get English."]
+end
+
+-- The language: the game's (Auto), or one by hand, a row each down a list,
+-- each language by its own name so it can be found whichever is showing.
+-- Auto's row says at its right which one it shows on this game. Each row
+-- says what a click does; the rows by key are list.byKey.
+local LANGUAGE_ROW, LANGUAGE_WIDTH = 24, 400
 local function LanguageChoice(window, page, x, y)
-    local items, width = {}, 2
+    local names, items = ns.LANGUAGE_NAMES, {}
     for _, key in ipairs(ns.LANGUAGE_KEYS) do
-        local label = key == "auto" and L["Auto (game language)"] or key == "zhCN" and "简体中文" or "English"
-        items[#items + 1] = { key = key, label = label, width = LANGUAGE_WIDTHS[key] }
-        width = width + LANGUAGE_WIDTHS[key]
+        items[#items + 1] = key == "auto" and { key = key, label = L["Auto (game language)"], detail = names[ns.LanguageFor("auto")] }
+            or { key = key, label = names[key] }
     end
-    local pills = T:Segmented(page, items, width, function(key) ns.Set("language", key) end)
-    pills:SetPoint("TOPLEFT", x, y)
-    for _, button in ipairs(pills.buttons) do
-        window:Hint(button, L["The language of this window, What's new and the addon's lines in chat. Auto follows your game:"
-            .. " Simplified Chinese on a Simplified Chinese game, English on any other. (experimental)"])
+    local list = T:RadioList(page, items, LANGUAGE_WIDTH, LANGUAGE_ROW, function(key) ns.Set("language", key) end)
+    list:SetPoint("TOPLEFT", x, y)
+    list.byKey = {}
+    for _, row in ipairs(list.buttons) do
+        list.byKey[row.key] = row
+        if row.key == "auto" then
+            window:Hint(row, LanguageNote())
+        else
+            window:Hint(row, function()
+                local name = names[row.key]
+                return list.selected == row.key and L["You're already using %s."]:format(name) or L["Switch to %s."]:format(name)
+            end)
+        end
     end
-    return pills
+    return list
 end
 
 -- Help (the tour, What's new and the Discord), the minimap button, the
--- window's accent and language, which version this is, and more from Squirt.
+-- window's accent, which version this is, and more from Squirt.
 local function BuildGeneral(window, page)
     T:Heading(page, L["Help"]):SetPoint("TOPLEFT", 16, -16)
     local tour = T:Button(page, L["Take the tour"], 110, 22)
@@ -238,7 +261,7 @@ local function BuildGeneral(window, page)
     Detail(page, L["Click it for these settings, right-click for What's new, and drag it round the minimap, or anywhere while it's free-floating."],
         34, -140, 580)
 
-    -- The window's own accent, and beside it the language.
+    -- The window's own accent.
     T:Heading(page, L["Window accent"]):SetPoint("TOPLEFT", 16, -180)
     local swatches = {}
     for i, key in ipairs(ns.ACCENT_KEYS) do
@@ -257,9 +280,6 @@ local function BuildGeneral(window, page)
     local chosen = T:Text(page, "GameFontHighlightSmall", T.MUTED)
     chosen:SetPoint("TOPLEFT", 16 + #ns.ACCENT_KEYS * (SWATCH + SWATCH_GAP) + 2, -204)
     window.swatches, window.accentName = swatches, chosen
-    T:Heading(page, L["Language"]):SetPoint("TOPLEFT", 260, -180)
-    local language = LanguageChoice(window, page, 260, -200)
-    window.language = language
 
     -- Which version this is, how to open the window, and whether to hear of
     -- a newer one (Core.lua's update notices), beside it.
@@ -294,13 +314,25 @@ local function BuildGeneral(window, page)
             T:Flat(swatch, { colour[1], colour[2], colour[3], 1 }, picked and { 1, 1, 1, 1 } or T.CONTROL_BORDER)
         end
         chosen:SetText(L[T.ACCENTS[accent].name])
-        language:SetSelected(ns.Get("language"))
         local version = ns.Version()
         if version == "dev" then
             about:SetText(L["%s, a copy straight from the source. Made by Squirt. Type /fecp to open this window."]:format(ns.TITLE))
         else
             about:SetText(L["%s version %s. Made by Squirt. Type /fecp to open this window."]:format(ns.TITLE, version))
         end
+    end
+end
+
+-- The language of the window, What's new and the chat lines: its own page,
+-- under General. The list, then what it covers under it.
+local function BuildLanguage(window, languagePage)
+    T:Heading(languagePage, L["Language"]):SetPoint("TOPLEFT", 16, -16)
+    local language = LanguageChoice(window, languagePage, 16, -36)
+    window.language = language
+    window.languageNote = Detail(languagePage, LanguageNote(), 16, -36 - language:GetHeight() - 12, 600)
+
+    function languagePage:Refresh()
+        language:SetSelected(ns.Get("language"))
     end
 end
 
@@ -411,8 +443,19 @@ local function BuildFooter(window)
     local note = T:Text(window, "GameFontHighlightSmall", T.MUTED)
     note:SetPoint("BOTTOMRIGHT", -12, 9)
     note:SetJustifyH("RIGHT")
-    note:SetWidth(WIDTH - 260)
+    note:SetWidth(NOTE_WIDTH)
     window.note = note
+    -- A note that would take three lines (a language with longer words, or
+    -- a long spell name in it) runs wider instead, up to the version on the
+    -- left, rather than climb into the page. Two lines stay as they are.
+    local function Put(text)
+        note:SetWidth(NOTE_WIDTH)
+        note:SetText(text)
+        local _, size = note:GetFont()
+        if (note:GetStringHeight() or 0) > 2.5 * (size or 10) then
+            note:SetWidth(WIDTH - 12 - math.ceil(version:GetStringWidth() or 0) - 24 - 12)
+        end
+    end
     -- Shown at the next refresh, and until the one after.
     function window:Say(text)
         self.message = text
@@ -427,7 +470,7 @@ local function BuildFooter(window)
         local text = hovered and not self.saying and hovered.hint
         if type(text) == "function" then text = text(hovered) end
         self.lastNote = self.said or Credit()
-        note:SetText(text or self.lastNote)
+        Put(text or self.lastNote)
     end
     function window:Note(control)
         self.hovered, self.saying = control, nil
@@ -651,7 +694,9 @@ local function BuildWindow()
         pulse = NavItem(window, nav, "pulse", L["Cooldown pulse"],
             L["A big icon in the middle of your screen when a cooldown is ready."], 12),
         general = NavItem(window, nav, "general", L["General"], L["The tour, What's new, the Discord, the minimap button,"
-            .. " this window's accent and language, update notices and Squirt's other addons."], 44),
+            .. " this window's accent, update notices and Squirt's other addons."], 44),
+        language = NavItem(window, nav, "language", L["Language"],
+            L["The language of this window, What's new and the addon's lines in chat."], 76),
     }
 
     -- Pages fill the rest.
@@ -662,9 +707,10 @@ local function BuildWindow()
         page:Hide()
         return page
     end
-    window.pages = { pulse = Page(), general = Page() }
+    window.pages = { pulse = Page(), general = Page(), language = Page() }
     ns.BuildPulsePage(window, window.pages.pulse, WIDTH - NAV - 2)
     BuildGeneral(window, window.pages.general)
+    BuildLanguage(window, window.pages.language)
 
     window.selected = "pulse"
     function window:Select(key)
