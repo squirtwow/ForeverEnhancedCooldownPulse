@@ -334,6 +334,8 @@ ns.LOCALES.zhCN = {
     ["Added"] = "新增",
     ["Changed"] = "改动",
     ["Fixed"] = "修复",
+    ["Simplified Chinese, German, French, Spanish, Brazilian Portuguese and Russian: pick one on the Language page under General. Auto follows your game's language."]
+        = "简体中文、德语、法语、西班牙语、巴西葡萄牙语和俄语：在「常规」下的「语言」页面中选择。「自动」跟随游戏语言。",
     ["Tell me when an update is out (General page): a line in chat when a newer version is out. On by default."]
         = "「有新版本时提醒我」（常规页面）：有新版本时在聊天框中显示一条消息。默认开启。",
     ["Missing spells (Seal of Command, Holy Shock, Cold Blood, Innervate and more) can now be pulsed."]

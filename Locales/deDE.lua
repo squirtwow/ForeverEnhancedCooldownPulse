@@ -409,6 +409,8 @@ ns.LOCALES.deDE = {
     ["Added"] = "Neu",
     ["Changed"] = "Geändert",
     ["Fixed"] = "Behoben",
+    ["Simplified Chinese, German, French, Spanish, Brazilian Portuguese and Russian: pick one on the Language page under General. Auto follows your game's language."]
+        = "Vereinfachtes Chinesisch, Deutsch, Französisch, Spanisch, brasilianisches Portugiesisch und Russisch: Wähle eine Sprache auf der Seite Sprache unter Allgemein. Auto folgt der Sprache deines Spiels.",
     ["Tell me when an update is out (General page): a line in chat when a newer version is out. On by default."]
         = '"Über Updates informieren" (Seite Allgemein): eine Chatzeile, sobald eine neuere Version erschienen ist. Standardmäßig an.',
     ["Missing spells (Seal of Command, Holy Shock, Cold Blood, Innervate and more) can now be pulsed."]

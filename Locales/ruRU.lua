@@ -372,6 +372,8 @@ ns.LOCALES.ruRU = {
     ["Added"] = "Добавлено",
     ["Changed"] = "Изменено",
     ["Fixed"] = "Исправлено",
+    ["Simplified Chinese, German, French, Spanish, Brazilian Portuguese and Russian: pick one on the Language page under General. Auto follows your game's language."]
+        = "Упрощённый китайский, немецкий, французский, испанский, бразильский португальский и русский: выберите язык на странице «Язык» в разделе «Общие». «Авто» использует язык игры.",
     ["Tell me when an update is out (General page): a line in chat when a newer version is out. On by default."]
         = "«Сообщать о новой версии» (страница «Общие»): сообщение в чате, когда выходит новая версия. Включено по умолчанию.",
     ["Missing spells (Seal of Command, Holy Shock, Cold Blood, Innervate and more) can now be pulsed."]

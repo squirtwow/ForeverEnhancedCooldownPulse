@@ -14,6 +14,14 @@ local T, L = ns.Theme, ns.L
 -- needs its line in every file in Locales (Tools/TestLocale.mjs checks).
 ns.NOTES = {
     {
+        version = "1.0.5",
+        sections = {
+            { "Added", {
+                "Simplified Chinese, German, French, Spanish, Brazilian Portuguese and Russian: pick one on the Language page under General. Auto follows your game's language.",
+            } },
+        },
+    },
+    {
         version = "1.0.4",
         sections = {
             { "Added", {

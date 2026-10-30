@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.5
+
+### Added
+- Simplified Chinese, German, French, Spanish, Brazilian Portuguese and Russian: pick one on the Language page under General. Auto follows your game's language.
+
 ## 1.0.4
 
 ### Added
