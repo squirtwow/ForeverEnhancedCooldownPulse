@@ -334,6 +334,14 @@ ns.LOCALES.zhCN = {
     ["Added"] = "新增",
     ["Changed"] = "改动",
     ["Fixed"] = "修复",
+    ["Spell data updated for launch."]
+        = "法术数据已更新至正式上线版本。",
+    ["The list shows Slam at 15 sec, Stormstrike 6, Riptide 12 and Totemic Call 30."]
+        = "列表显示猛击 15 秒、风暴打击 6 秒、激流 12 秒、图腾召唤 30 秒。",
+    ["Ice Lance can be pulsed at every rank (8 sec), not just rank 1."]
+        = "冰枪术的所有等级（8 秒）都能触发脉冲，不再只有等级 1。",
+    ["Elemental Mastery and Totemic Projection keep their tick when the game renames them."]
+        = "元素掌握和图腾投射在游戏改名后仍保持勾选。",
     ["Simplified Chinese, German, French, Spanish, Brazilian Portuguese and Russian: pick one on the Language page under General. Auto follows your game's language."]
         = "简体中文、德语、法语、西班牙语、巴西葡萄牙语和俄语：在「常规」下的「语言」页面中选择。「自动」跟随游戏语言。",
     ["Tell me when an update is out (General page): a line in chat when a newer version is out. On by default."]

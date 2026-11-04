@@ -386,6 +386,14 @@ ns.LOCALES.esES = {
     ["Added"] = "Añadido",
     ["Changed"] = "Cambiado",
     ["Fixed"] = "Corregido",
+    ["Spell data updated for launch."]
+        = "Datos de hechizos actualizados para el lanzamiento.",
+    ["The list shows Slam at 15 sec, Stormstrike 6, Riptide 12 and Totemic Call 30."]
+        = "La lista muestra Embate a 15 s, Golpe de tormenta 6, Mareas vivas 12 y Llamada totémica 30.",
+    ["Ice Lance can be pulsed at every rank (8 sec), not just rank 1."]
+        = "Lanza de hielo puede pulsar en todos los rangos (8 s), no solo en el rango 1.",
+    ["Elemental Mastery and Totemic Projection keep their tick when the game renames them."]
+        = "Maestría elemental y Proyección totémica conservan su marca cuando el juego las renombra.",
     ["Simplified Chinese, German, French, Spanish, Brazilian Portuguese and Russian: pick one on the Language page under General. Auto follows your game's language."]
         = "Chino simplificado, alemán, francés, español, portugués de Brasil y ruso: elige uno en la página Idioma, dentro de General. Automático sigue el idioma de tu juego.",
     ["Tell me when an update is out (General page): a line in chat when a newer version is out. On by default."]

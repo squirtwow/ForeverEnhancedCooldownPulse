@@ -372,6 +372,14 @@ ns.LOCALES.ruRU = {
     ["Added"] = "Добавлено",
     ["Changed"] = "Изменено",
     ["Fixed"] = "Исправлено",
+    ["Spell data updated for launch."]
+        = "Данные о заклинаниях обновлены к запуску.",
+    ["The list shows Slam at 15 sec, Stormstrike 6, Riptide 12 and Totemic Call 30."]
+        = "В списке: Мощный удар 15 с, Удар бури 6, Быстрина 12 и Призыв тотемов 30.",
+    ["Ice Lance can be pulsed at every rank (8 sec), not just rank 1."]
+        = "Ледяное копьё можно отслеживать на всех рангах (8 с), а не только на 1-м.",
+    ["Elemental Mastery and Totemic Projection keep their tick when the game renames them."]
+        = "Покорение стихий и Проекция тотема остаются отмеченными, когда игра их переименовывает.",
     ["Simplified Chinese, German, French, Spanish, Brazilian Portuguese and Russian: pick one on the Language page under General. Auto follows your game's language."]
         = "Упрощённый китайский, немецкий, французский, испанский, бразильский португальский и русский: выберите язык на странице «Язык» в разделе «Общие». «Авто» использует язык игры.",
     ["Tell me when an update is out (General page): a line in chat when a newer version is out. On by default."]

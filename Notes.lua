@@ -14,6 +14,19 @@ local T, L = ns.Theme, ns.L
 -- needs its line in every file in Locales (Tools/TestLocale.mjs checks).
 ns.NOTES = {
     {
+        version = "1.0.6",
+        sections = {
+            { "Changed", {
+                "Spell data updated for launch.",
+                "The list shows Slam at 15 sec, Stormstrike 6, Riptide 12 and Totemic Call 30.",
+            } },
+            { "Fixed", {
+                "Ice Lance can be pulsed at every rank (8 sec), not just rank 1.",
+                "Elemental Mastery and Totemic Projection keep their tick when the game renames them.",
+            } },
+        },
+    },
+    {
         version = "1.0.5",
         sections = {
             { "Added", {

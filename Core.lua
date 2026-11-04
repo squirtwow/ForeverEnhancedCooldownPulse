@@ -191,6 +191,14 @@ local function Everyone()
     if type(name) == "string" and Profiles()[name] then return name end
 end
 
+-- Every profile's ticks and Long again, once your spellbook shows which of two
+-- names your game uses (Spells.lua FollowNames: the names Blizzard's notes
+-- gave for launch).
+function ns.RenameSaved()
+    if not db then return end
+    for _, profile in pairs(Profiles()) do Lists(profile) end
+end
+
 local function RepairProfiles()
     local profiles = Profiles()
     for name, profile in pairs(profiles) do

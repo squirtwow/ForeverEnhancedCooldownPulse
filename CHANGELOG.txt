@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.6
+
+### Changed
+- Spell data updated for launch.
+- The list shows Slam at 15 sec, Stormstrike 6, Riptide 12 and Totemic Call 30.
+
+### Fixed
+- Ice Lance can be pulsed at every rank (8 sec), not just rank 1.
+- Elemental Mastery and Totemic Projection keep their tick when the game renames them.
+
 ## 1.0.5
 
 ### Added

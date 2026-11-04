@@ -83,9 +83,23 @@ local RENAMED = {
     ["Greater Blessing of Salvation"] = "Mass Salvation",
 }
 
+-- Names from Blizzard's notes for launch (3 Nov 2026), where which one your
+-- game uses depends on its build and hotfixes: build 70707 has the three old
+-- ones, 70753 only Unsealed Wrath, and a new name may come with a new spell
+-- ID (no data has Totemic Call's new form). So a tick moves to whichever your
+-- own spellbook shows (FollowNames), either way, as often as that changes.
+-- Showing neither, nothing moves.
+local EITHER = {
+    ["Elemental Mastery"] = "Lightning Mastery", ["Lightning Mastery"] = "Elemental Mastery",
+    ["Totemic Projection"] = "Totemic Call", ["Totemic Call"] = "Totemic Projection",
+    ["Twist of Light"] = "Unsealed Wrath", ["Unsealed Wrath"] = "Twist of Light",
+}
+-- A saved name, for this session: the name your spellbook shows instead.
+local following = {}
+
 -- A saved key's name now, for a spell that was renamed. Nil for any other key.
 function S:NewName(key)
-    return type(key) == "string" and RENAMED[key] or nil
+    return type(key) == "string" and (following[key] or RENAMED[key]) or nil
 end
 
 local function Add(entry)
@@ -94,6 +108,9 @@ local function Add(entry)
     list[#list + 1] = entry
     return entry
 end
+
+-- Which of EITHER's names your spellbook shows, passives too, as last read.
+local bookNames = {}
 
 -- Each spell once, by name, at the highest rank you know. Passives and
 -- spells not learned yet are passed over.
@@ -110,6 +127,7 @@ local function ScanSpellbook()
                     local item = C_SpellBook.GetSpellBookItemInfo(index, BANK)
                     local name = item and Text(item.name)
                     local spellID = item and (item.spellID or item.actionID)
+                    if name and EITHER[name] then bookNames[name] = true end
                     if name and spellID and not item.isPassive then
                         local rank = tonumber((Text(item.subName) or ""):match("%d+")) or 0
                         local entry = byKey[name] or Add({ key = name, name = name, kind = "spell", rank = -1 })
@@ -121,6 +139,21 @@ local function ScanSpellbook()
             end
         end
     end
+end
+
+-- The name your spellbook shows of two that count as one (EITHER): ticks saved
+-- under the other move over to it, in every profile (Core.lua), once each way.
+-- With both in your spellbook they're two spells, and nothing moves.
+local function FollowNames()
+    local moved = false
+    for name in pairs(bookNames) do
+        local other = EITHER[name]
+        if not bookNames[other] and following[other] ~= name then
+            following[other], following[name] = name, nil
+            moved = true
+        end
+    end
+    if moved and ns.RenameSaved then ns.RenameSaved() end
 end
 
 local function ItemName(itemID, link)
@@ -264,7 +297,9 @@ function S:Scan()
     stale, reads = false, reads + 1
     wipe(list)
     wipe(byKey)
+    wipe(bookNames)
     ScanSpellbook()
+    FollowNames()
     ScanItems()
     return list
 end

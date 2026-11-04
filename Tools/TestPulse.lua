@@ -794,6 +794,11 @@ do
     Equal(P:BaseCooldown(22812) .. " " .. P:BaseCooldown(871) .. " " .. P:BaseCooldown(1856) .. " " .. P:BaseCooldown(8921) .. " "
         .. P:BaseCooldown(6603) .. " " .. P:BaseCooldown(17), "60 900 300 0 0 4",
         "from the game data: Barkskin, Shield Wall, Vanish, Power Word: Shield; Moonfire and Attack have none")
+    Equal(P:BaseCooldown(1312002) .. " " .. P:BaseCooldown(400640) .. " " .. P:BaseCooldown(1240047), "8 8 8",
+        "Ice Lance 8 sec at every rank (ranks 2 to 6 from the 30 Oct hotfix), so it's offered past rank 1")
+    Equal(P:BaseCooldown(1464) .. " " .. P:BaseCooldown(11605) .. " " .. P:BaseCooldown(17364) .. " " .. P:BaseCooldown(408521) .. " "
+        .. P:BaseCooldown(437009) .. " " .. P:BaseCooldown(1322605), "15 15 6 12 30 8",
+        "Blizzard's notes for launch: Slam, Stormstrike, Riptide, Totemic Call; Shifting Power from build 70753's data")
     Equal(P:BaseCooldown(999999), 0, "a spell the data doesn't cover, with no way to ask: none")
     _G.GetSpellBaseCooldown = function(id)
         if id == 999999 then return 45000, 1500 end
@@ -944,6 +949,63 @@ do
     H.Start(db)
     Equal(Keys(db.profiles.Mine.pulsePick) .. " | " .. Keys(db.profiles.Mine.pulseStyle), "Barkskin=true,Read Leyline=true | Read Leyline=long",
         "loaded again: nothing left to move")
+end
+
+-- Names Blizzard's notes gave for launch: ticks follow your spellbook ------------------------------------
+-- Which name your game uses depends on its build and hotfixes, so a tick and
+-- Long go to whichever your spellbook shows, either way, in every profile, and
+-- the spell still pulses. Showing neither, nothing moves; showing both, they're
+-- two spells.
+
+do
+    local function Keys(set)
+        local keys = {}
+        for key, value in pairs(set) do keys[#keys + 1] = key .. "=" .. tostring(value) end
+        table.sort(keys)
+        return table.concat(keys, ",")
+    end
+    local function Login(items, saved, asked)
+        H.Environment()
+        _G.GetSpellBaseCooldown = asked
+        table.insert(items, 1, { name = "Attack", spellID = 6603 })
+        H.Book({ { name = "General", items = items } })
+        local ns = H.Load({ profiles = { Mine = { pulsePick = { [saved] = true, Barkskin = true }, pulseStyle = { [saved] = "long" } },
+            Other = { pulsePick = { [saved] = true }, pulseStyle = {} } }, chars = { ["Player-1-0001"] = "Mine" } })
+        H.Tick(ns)
+        return ns, ForeverEnhancedCooldownPulseDB.profiles
+    end
+    local function Row(ns, name)
+        ns.Set("pulse", true)
+        ns.Pulse:Apply()
+        local _, watchers = ns.Pulse:Watchers()
+        for _, row in ipairs(ns.Pulse:Spells()) do
+            if row.name == name then
+                return string.format("%s %g %s %s", tostring(row.on), row.base, ns.Pulse:StyleOf(row.key), tostring(watchers[row.key] ~= nil))
+            end
+        end
+        return "not listed"
+    end
+    local ns, profiles = Login({ { name = "Lightning Mastery", spellID = 16166, iconID = 1 } }, "Elemental Mastery")
+    Equal(Row(ns, "Lightning Mastery") .. " | " .. Keys(profiles.Mine.pulsePick) .. " | " .. Keys(profiles.Mine.pulseStyle) .. " | " .. Keys(profiles.Other.pulsePick),
+        "true 180 long true | Barkskin=true,Lightning Mastery=true | Lightning Mastery=long | Lightning Mastery=true",
+        "saved by the old name, the game on the new: every profile's tick and Long go along")
+    ns, profiles = Login({ { name = "Elemental Mastery", spellID = 16166, iconID = 1 } }, "Lightning Mastery")
+    Equal(Row(ns, "Elemental Mastery") .. " | " .. Keys(profiles.Mine.pulsePick) .. " | " .. Keys(profiles.Other.pulsePick),
+        "true 180 long true | Barkskin=true,Elemental Mastery=true | Elemental Mastery=true", "saved by the new name, the game on the old")
+    ns = Login({ { name = "Totemic Call", spellID = 437009, iconID = 1 } }, "Totemic Projection")
+    Equal(Row(ns, "Totemic Call"), "true 30 long true", "the same ID under the new name")
+    ns = Login({ { name = "Totemic Projection", spellID = 437009, iconID = 1 } }, "Totemic Call")
+    Equal(Row(ns, "Totemic Projection"), "true 30 long true", "and the other way")
+    ns = Login({ { name = "Totemic Call", spellID = 1999999, iconID = 1 } }, "Totemic Projection", function(id) return id == 1999999 and 30000 or 0 end)
+    Equal(Row(ns, "Totemic Call"), "true 30 long true", "a new ID: by its name, its cooldown asked of the game")
+    ns, profiles = Login({ { name = "Unsealed Wrath", spellID = 1310735, isPassive = true } }, "Twist of Light")
+    Equal(Keys(profiles.Mine.pulsePick), "Barkskin=true,Unsealed Wrath=true", "a passive's name is followed as well")
+    ns, profiles = Login({}, "Lightning Mastery")
+    Equal(Keys(profiles.Mine.pulsePick), "Barkskin=true,Lightning Mastery=true", "showing neither: as saved")
+    ns, profiles = Login({ { name = "Elemental Mastery", spellID = 16166, iconID = 1 }, { name = "Lightning Mastery", spellID = 1999998, iconID = 1 } }, "Elemental Mastery")
+    Equal(Keys(profiles.Mine.pulsePick), "Barkskin=true,Elemental Mastery=true", "showing both: two spells")
+    _G.GetSpellBaseCooldown = nil
+    Equal(H.Problems(), "", "no errors from the names that go either way")
 end
 
 -- A new spell learned: listed on the next frame, unticked ------------------------------------------

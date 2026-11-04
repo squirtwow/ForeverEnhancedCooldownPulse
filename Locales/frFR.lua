@@ -385,6 +385,14 @@ ns.LOCALES.frFR = {
     ["Added"] = "Ajouts",
     ["Changed"] = "Modifications",
     ["Fixed"] = "Corrections",
+    ["Spell data updated for launch."]
+        = "Données des sorts mises à jour pour le lancement.",
+    ["The list shows Slam at 15 sec, Stormstrike 6, Riptide 12 and Totemic Call 30."]
+        = "La liste indique Heurtoir à 15 s, Frappe-tempête 6, Remous 12 et Appel totémique 30.",
+    ["Ice Lance can be pulsed at every rank (8 sec), not just rank 1."]
+        = "Javelot de glace peut pulser à tous les rangs (8 s), plus seulement au rang 1.",
+    ["Elemental Mastery and Totemic Projection keep their tick when the game renames them."]
+        = "Maîtrise élémentaire et Projection totémique restent cochées quand le jeu les renomme.",
     ["Simplified Chinese, German, French, Spanish, Brazilian Portuguese and Russian: pick one on the Language page under General. Auto follows your game's language."]
         = "Chinois simplifié, allemand, français, espagnol, portugais du Brésil et russe : choisissez sur la page Langue, sous Général. Auto suit la langue de votre jeu.",
     ["Tell me when an update is out (General page): a line in chat when a newer version is out. On by default."]

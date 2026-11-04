@@ -409,6 +409,14 @@ ns.LOCALES.deDE = {
     ["Added"] = "Neu",
     ["Changed"] = "Geändert",
     ["Fixed"] = "Behoben",
+    ["Spell data updated for launch."]
+        = "Zauberdaten für den Launch aktualisiert.",
+    ["The list shows Slam at 15 sec, Stormstrike 6, Riptide 12 and Totemic Call 30."]
+        = "Die Liste zeigt Zerschmettern mit 15 Sek., Sturmschlag 6, Springflut 12 und Totemruf 30.",
+    ["Ice Lance can be pulsed at every rank (8 sec), not just rank 1."]
+        = "Eislanze kann auf jedem Rang pulsieren (8 Sek.), nicht nur auf Rang 1.",
+    ["Elemental Mastery and Totemic Projection keep their tick when the game renames them."]
+        = "Elementarbeherrschung und Totemprojektion bleiben angehakt, wenn das Spiel sie umbenennt.",
     ["Simplified Chinese, German, French, Spanish, Brazilian Portuguese and Russian: pick one on the Language page under General. Auto follows your game's language."]
         = "Vereinfachtes Chinesisch, Deutsch, Französisch, Spanisch, brasilianisches Portugiesisch und Russisch: Wähle eine Sprache auf der Seite Sprache unter Allgemein. Auto folgt der Sprache deines Spiels.",
     ["Tell me when an update is out (General page): a line in chat when a newer version is out. On by default."]
