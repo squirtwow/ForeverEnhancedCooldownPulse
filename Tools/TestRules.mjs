@@ -151,11 +151,13 @@ test('the pulse hands cooldowns on, never reads one, and takes no mouse but to m
     /GetCooldownDuration\b/, /cooldown:IsShown/, /cooldown:IsVisible/, /startTime/, /modRate/, /isActive/]) {
     assert.equal(pattern.test(pulse), false, `${pattern} in Pulse.lua`);
   }
-  // One plain question, whether a spell's cooldown is on hold: only its field
-  // that's never secret is read.
+  // Two plain questions, whether a spell's cooldown is on hold and whether
+  // it's only the global cooldown: only those two fields, never secret
+  // (SpellSharedDocumentation.lua), are read.
   assert.equal(count(pulse, /GetSpellCooldown\(/g), 1, 'C_Spell.GetSpellCooldown, once');
   assert.equal(count(pulse, /C_Spell\.GetSpellCooldown and C_Spell\.GetSpellCooldown\(watch\.spellID\)/g), 1);
-  assert.deepEqual([...new Set(pulse.match(/\binfo\.\w+/g))], ['info.isEnabled'], 'only isEnabled is read');
+  assert.deepEqual([...new Set(pulse.match(/\binfo\.\w+/g))].sort(), ['info.isEnabled', 'info.isOnGCD'],
+    'only isEnabled and isOnGCD are read');
   assert.equal(count(pulse, /GetSpellCooldownDuration\(watch\.spellID, true\)/g), 1, 'asked for once, without the global cooldown');
   assert.equal(count(pulse, /SetCooldownFromDurationObject\(duration\)/g), 1, 'and handed straight on');
   // A watcher is let go of while it's cleared, so a done the game may send for the clear is no pulse.

@@ -213,6 +213,22 @@ do
     Fire("SPELL_UPDATE_COOLDOWN")
     H.Tick(ns)
     Equal(rawequal(Last(bark, "SetCooldownFromDurationObject"), H.SEALED), true, "once it starts: handed on")
+    -- Only the global cooldown (Barkskin sitting ready, in a fight): the game
+    -- says so plainly, so nothing is asked or handed on and the watcher keeps
+    -- what it had. Its end is no pulse.
+    clears = S[bark].clears or 0
+    S[bark].last.SetCooldownFromDurationObject = nil
+    H.onGCD[22812], H.asked = true, {}
+    Fire("SPELL_UPDATE_COOLDOWN")
+    H.Tick(ns)
+    table.sort(H.asked)
+    Equal(table.concat(H.asked, ",") .. " " .. ((S[bark].clears or 0) - clears) .. " "
+        .. tostring(Last(bark, "SetCooldownFromDurationObject")) .. " " .. tostring(P:Showing()) .. " " .. tostring(bark.watch ~= nil),
+        "5211,1259416 0 nil nil true", "only the global cooldown on Barkskin, in a fight: not asked for, not cleared, nothing handed on, no pulse")
+    H.onGCD[22812] = nil
+    Fire("SPELL_UPDATE_COOLDOWN")
+    H.Tick(ns)
+    Equal(rawequal(Last(bark, "SetCooldownFromDurationObject"), H.SEALED), true, "past the global cooldown: handed on again")
     H.lockdown = false
 end
 

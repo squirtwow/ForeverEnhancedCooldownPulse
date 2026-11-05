@@ -512,8 +512,9 @@ function H.Environment()
     }
     -- Spells: the ones whose cooldowns were asked for, and those on hold
     -- (a cooldown that starts once its effect is used up). Like the game:
-    -- the times secret, whether it's on hold never.
-    H.asked, H.held = {}, {}
+    -- the times secret, whether it's on hold never, nor whether it's only
+    -- the global cooldown (H.onGCD).
+    H.asked, H.held, H.onGCD = {}, {}, {}
     _G.C_Spell = {
         GetSpellCooldownDuration = function(id, ignoreGCD)
             if ignoreGCD ~= true then Violation("asked for a cooldown with the global cooldown") end
@@ -522,7 +523,7 @@ function H.Environment()
         end,
         GetSpellCooldown = function(id)
             local secret = H.SECRETS.number
-            return { isEnabled = not H.held[id], startTime = secret, duration = secret, modRate = secret }
+            return { isEnabled = not H.held[id], isOnGCD = H.onGCD[id], startTime = secret, duration = secret, modRate = secret }
         end,
         GetSpellTexture = function() return 1 end,
         GetSpellName = function() return nil end,
