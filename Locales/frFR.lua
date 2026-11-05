@@ -385,6 +385,8 @@ ns.LOCALES.frFR = {
     ["Added"] = "Ajouts",
     ["Changed"] = "Modifications",
     ["Fixed"] = "Corrections",
+    ["The pulse no longer goes off again and again in a fight for a spell that's already ready."]
+        = "La pulsation ne se déclenche plus encore et encore en combat pour un sort déjà prêt.",
     ["Spell data updated for launch."]
         = "Données des sorts mises à jour pour le lancement.",
     ["The list shows Slam at 15 sec, Stormstrike 6, Riptide 12 and Totemic Call 30."]

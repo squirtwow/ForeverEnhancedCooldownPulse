@@ -370,6 +370,8 @@ ns.LOCALES.ptBR = {
     ["Added"] = "Adições",
     ["Changed"] = "Mudanças",
     ["Fixed"] = "Correções",
+    ["The pulse no longer goes off again and again in a fight for a spell that's already ready."]
+        = "O pulso não dispara mais sem parar em combate para um feitiço que já está pronto.",
     ["Spell data updated for launch."]
         = "Dados de feitiços atualizados para o lançamento.",
     ["The list shows Slam at 15 sec, Stormstrike 6, Riptide 12 and Totemic Call 30."]

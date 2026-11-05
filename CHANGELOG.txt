@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.7
+
+### Fixed
+- The pulse no longer goes off again and again in a fight for a spell that's already ready.
+
 ## 1.0.6
 
 ### Changed

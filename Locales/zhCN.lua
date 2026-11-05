@@ -334,6 +334,8 @@ ns.LOCALES.zhCN = {
     ["Added"] = "新增",
     ["Changed"] = "改动",
     ["Fixed"] = "修复",
+    ["The pulse no longer goes off again and again in a fight for a spell that's already ready."]
+        = "战斗中已就绪的法术不会再反复触发提示。",
     ["Spell data updated for launch."]
         = "法术数据已更新至正式上线版本。",
     ["The list shows Slam at 15 sec, Stormstrike 6, Riptide 12 and Totemic Call 30."]

@@ -372,6 +372,8 @@ ns.LOCALES.ruRU = {
     ["Added"] = "Добавлено",
     ["Changed"] = "Изменено",
     ["Fixed"] = "Исправлено",
+    ["The pulse no longer goes off again and again in a fight for a spell that's already ready."]
+        = "Вспышка больше не срабатывает снова и снова в бою для заклинания, которое уже готово.",
     ["Spell data updated for launch."]
         = "Данные о заклинаниях обновлены к запуску.",
     ["The list shows Slam at 15 sec, Stormstrike 6, Riptide 12 and Totemic Call 30."]

@@ -409,6 +409,8 @@ ns.LOCALES.deDE = {
     ["Added"] = "Neu",
     ["Changed"] = "Geändert",
     ["Fixed"] = "Behoben",
+    ["The pulse no longer goes off again and again in a fight for a spell that's already ready."]
+        = "Der Puls geht im Kampf nicht mehr immer wieder für einen Zauber los, der schon bereit ist.",
     ["Spell data updated for launch."]
         = "Zauberdaten für den Launch aktualisiert.",
     ["The list shows Slam at 15 sec, Stormstrike 6, Riptide 12 and Totemic Call 30."]

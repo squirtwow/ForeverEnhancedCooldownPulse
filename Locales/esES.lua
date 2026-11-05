@@ -386,6 +386,8 @@ ns.LOCALES.esES = {
     ["Added"] = "Añadido",
     ["Changed"] = "Cambiado",
     ["Fixed"] = "Corregido",
+    ["The pulse no longer goes off again and again in a fight for a spell that's already ready."]
+        = "El aviso ya no salta una y otra vez en combate por un hechizo que ya está listo.",
     ["Spell data updated for launch."]
         = "Datos de hechizos actualizados para el lanzamiento.",
     ["The list shows Slam at 15 sec, Stormstrike 6, Riptide 12 and Totemic Call 30."]
