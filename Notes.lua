@@ -14,6 +14,17 @@ local T, L = ns.Theme, ns.L
 -- needs its line in every file in Locales (Tools/TestLocale.mjs checks).
 ns.NOTES = {
     {
+        version = "1.0.8",
+        sections = {
+            { "Changed", {
+                "Spell data updated for this week's Forever patch, like Shank and Reckless Swings.",
+            } },
+            { "Fixed", {
+                "The pulse no longer goes off in a fight for a spell that's already ready, for players still seeing it after 1.0.7.",
+            } },
+        },
+    },
+    {
         version = "1.0.7",
         sections = {
             { "Fixed", {

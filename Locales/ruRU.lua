@@ -372,6 +372,10 @@ ns.LOCALES.ruRU = {
     ["Added"] = "Добавлено",
     ["Changed"] = "Изменено",
     ["Fixed"] = "Исправлено",
+    ["Spell data updated for this week's Forever patch, like Shank and Reckless Swings."]
+        = "Данные о заклинаниях обновлены для патча Forever этой недели, например Shank и Reckless Swings.",
+    ["The pulse no longer goes off in a fight for a spell that's already ready, for players still seeing it after 1.0.7."]
+        = "Вспышка больше не срабатывает в бою для заклинания, которое уже готово, у тех, кто ещё видел это после 1.0.7.",
     ["The pulse no longer goes off again and again in a fight for a spell that's already ready."]
         = "Вспышка больше не срабатывает снова и снова в бою для заклинания, которое уже готово.",
     ["Spell data updated for launch."]

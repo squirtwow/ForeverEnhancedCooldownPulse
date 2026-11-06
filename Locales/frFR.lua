@@ -385,6 +385,10 @@ ns.LOCALES.frFR = {
     ["Added"] = "Ajouts",
     ["Changed"] = "Modifications",
     ["Fixed"] = "Corrections",
+    ["Spell data updated for this week's Forever patch, like Shank and Reckless Swings."]
+        = "Données des sorts mises à jour pour le patch Forever de cette semaine, comme Shank et Reckless Swings.",
+    ["The pulse no longer goes off in a fight for a spell that's already ready, for players still seeing it after 1.0.7."]
+        = "La pulsation ne se déclenche plus en combat pour un sort déjà prêt, pour ceux qui le voyaient encore après la 1.0.7.",
     ["The pulse no longer goes off again and again in a fight for a spell that's already ready."]
         = "La pulsation ne se déclenche plus encore et encore en combat pour un sort déjà prêt.",
     ["Spell data updated for launch."]

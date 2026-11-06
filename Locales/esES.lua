@@ -386,6 +386,10 @@ ns.LOCALES.esES = {
     ["Added"] = "Añadido",
     ["Changed"] = "Cambiado",
     ["Fixed"] = "Corregido",
+    ["Spell data updated for this week's Forever patch, like Shank and Reckless Swings."]
+        = "Datos de hechizos actualizados para el parche de Forever de esta semana, como Shank y Reckless Swings.",
+    ["The pulse no longer goes off in a fight for a spell that's already ready, for players still seeing it after 1.0.7."]
+        = "El aviso ya no salta en combate por un hechizo que ya está listo, para quienes aún lo veían tras la 1.0.7.",
     ["The pulse no longer goes off again and again in a fight for a spell that's already ready."]
         = "El aviso ya no salta una y otra vez en combate por un hechizo que ya está listo.",
     ["Spell data updated for launch."]

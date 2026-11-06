@@ -334,6 +334,10 @@ ns.LOCALES.zhCN = {
     ["Added"] = "新增",
     ["Changed"] = "改动",
     ["Fixed"] = "修复",
+    ["Spell data updated for this week's Forever patch, like Shank and Reckless Swings."]
+        = "法术数据已更新至本周的 Forever 补丁，例如 Shank 和 Reckless Swings。",
+    ["The pulse no longer goes off in a fight for a spell that's already ready, for players still seeing it after 1.0.7."]
+        = "战斗中已就绪的法术不会再触发提示，1.0.7 之后仍遇到此问题的玩家也已修复。",
     ["The pulse no longer goes off again and again in a fight for a spell that's already ready."]
         = "战斗中已就绪的法术不会再反复触发提示。",
     ["Spell data updated for launch."]
