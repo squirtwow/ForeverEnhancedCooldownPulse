@@ -275,6 +275,21 @@ do
     H.Done(bash)
     Equal(P:Showing(), "Bash", "two seconds on, it pulses")
     Finish(P)
+    -- Shown and done within a global cooldown (Bash sitting ready, handed one
+    -- in a fight anyway): no pulse. Shown for its own minute: it pulses.
+    H.clock = H.clock + 5
+    bash:Hide()
+    bash:Show()
+    Equal(type(bash.started), "number", "the game shows a watcher as a cooldown starts: the time is noted")
+    H.clock = H.clock + 1.5
+    H.Done(bash)
+    Equal(tostring(P:Showing()), "nil", "a ready spell's watcher done a global cooldown after it showed: no pulse")
+    bash:Hide()
+    bash:Show()
+    H.clock = H.clock + 60
+    H.Done(bash)
+    Equal(P:Showing(), "Bash", "done a minute after it showed: it pulses")
+    Finish(P)
     -- With the interface hidden (Alt+Z), none.
     H.clock = H.clock + 5
     S[UIParent].shown = false
