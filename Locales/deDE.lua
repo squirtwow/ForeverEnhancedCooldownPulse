@@ -413,6 +413,8 @@ ns.LOCALES.deDE = {
         = "Zauberdaten für den Forever-Patch dieser Woche aktualisiert, etwa Shank und Reckless Swings.",
     ["The pulse no longer goes off in a fight for a spell that's already ready, for players still seeing it after 1.0.7."]
         = "Der Puls geht im Kampf nicht mehr für einen Zauber los, der schon bereit ist, auch für alle, die das nach 1.0.7 noch sahen.",
+    ["Shooting a wand no longer pulses ready spells."]
+        = "Das Schießen mit einem Zauberstab löst keinen Puls mehr für bereite Zauber aus.",
     ["The pulse no longer goes off again and again in a fight for a spell that's already ready."]
         = "Der Puls geht im Kampf nicht mehr immer wieder für einen Zauber los, der schon bereit ist.",
     ["Spell data updated for launch."]

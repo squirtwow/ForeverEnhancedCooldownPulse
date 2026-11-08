@@ -374,6 +374,8 @@ ns.LOCALES.ptBR = {
         = "Dados de feitiços atualizados para o patch do Forever desta semana, como Shank e Reckless Swings.",
     ["The pulse no longer goes off in a fight for a spell that's already ready, for players still seeing it after 1.0.7."]
         = "O pulso não dispara mais em combate para um feitiço que já está pronto, para quem ainda via isso após a 1.0.7.",
+    ["Shooting a wand no longer pulses ready spells."]
+        = "Atirar com uma varinha não dispara mais o pulso de feitiços prontos.",
     ["The pulse no longer goes off again and again in a fight for a spell that's already ready."]
         = "O pulso não dispara mais sem parar em combate para um feitiço que já está pronto.",
     ["Spell data updated for launch."]

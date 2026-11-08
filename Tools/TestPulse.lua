@@ -229,6 +229,43 @@ do
     Fire("SPELL_UPDATE_COOLDOWN")
     H.Tick(ns)
     Equal(rawequal(Last(bark, "SetCooldownFromDurationObject"), H.SEALED), true, "past the global cooldown: handed on again")
+    -- Shooting a wand: each shot can hand a ready spell a wait of its own, so
+    -- spells are handed nothing until the shooting (and its last shot) is over.
+    H.worn[18], H.asked = 5240, {}
+    Fire("START_AUTOREPEAT_SPELL")
+    Fire("SPELL_UPDATE_COOLDOWN")
+    H.Tick(ns)
+    Equal(#H.asked .. " " .. tostring(P:Wanding()), "0 true", "a wand shooting, in a fight: no spell asked for")
+    -- A cooldown already counting before the shooting still pulses as it ends.
+    bark:Hide()
+    bark:Show()
+    H.clock = H.clock + 60
+    H.Done(bark)
+    Equal(P:Showing(), "Barkskin", "a real cooldown ending while the wand shoots: it pulses")
+    Finish(P)
+    Fire("STOP_AUTOREPEAT_SPELL")
+    Fire("SPELL_UPDATE_COOLDOWN")
+    H.Tick(ns)
+    Equal(#H.asked .. " " .. tostring(P:Wanding()), "0 true", "the wand stopped, its last shot may still be out: still none asked for")
+    H.clock = H.clock + P.WAND_TAIL + .1
+    H.RunTimers()
+    H.Tick(ns)
+    Equal(#H.asked .. " " .. tostring(P:Wanding()), "3 false", "the shooting over: each spell fed again, by itself")
+    -- A bow's auto attack runs all fight among real cooldowns: nothing paused.
+    H.worn[18], H.asked = 2504, {}
+    Fire("START_AUTOREPEAT_SPELL")
+    Fire("SPELL_UPDATE_COOLDOWN")
+    H.Tick(ns)
+    Equal(#H.asked .. " " .. tostring(P:Wanding()), "3 false", "a bow's auto attack: spells fed as usual")
+    Fire("STOP_AUTOREPEAT_SPELL")
+    Equal(#H.timers, 0, "and nothing waits when it stops")
+    -- A wand started, then a loading screen before it's heard to stop: never stuck.
+    H.worn[18] = 5240
+    Fire("START_AUTOREPEAT_SPELL")
+    Fire("PLAYER_ENTERING_WORLD")
+    Equal(tostring(P:Wanding()), "false", "a loading screen lets go of the shooting")
+    H.Tick(ns)
+    H.worn[18] = nil
     H.lockdown = false
 end
 

@@ -558,7 +558,7 @@ function H.Environment()
     _G.C_Item = {
         GetItemSpell = function(id) return H.itemSpells[id] end,
         GetItemInfoInstant = function(id)
-            local class = ({ [118] = { 0, 1 }, [117] = { 0, 5 }, [7676] = { 0, 5 }, [2698] = { 9, 0 } })[id] or { 15, 0 }
+            local class = ({ [118] = { 0, 1 }, [117] = { 0, 5 }, [7676] = { 0, 5 }, [2698] = { 9, 0 }, [5240] = { 2, 19 }, [2504] = { 2, 2 } })[id] or { 15, 0 }
             return id, nil, nil, "", nil, class[1], class[2]
         end,
         GetItemCooldown = function()
