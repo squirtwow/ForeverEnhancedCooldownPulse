@@ -117,7 +117,7 @@ do
     Equal(Rows(page), SPELLS, "every spell you know with a cooldown of its own, by name, each unticked and Quick, with its cooldown;"
         .. " Moonfire and Attack (none), a passive and a spell not learned left out; no potions you don't carry")
     Equal(S[page.about].text, "tick the ones you want to pulse, then pick Quick or Long for each", "the list says what to do")
-    local controls = { page.master, page.previewButton, page.move, page.reset, page.shadow, page.items, page.volume }
+    local controls = { page.master, page.previewButton, page.move, page.reset, page.shadow, page.items, page.procs, page.volume }
     for _, pills in ipairs({ page.edit, page.sound, page.border }) do
         for _, button in ipairs(pills.buttons) do controls[#controls + 1] = button end
     end
@@ -127,7 +127,7 @@ do
         local hint = Note(control)
         if type(hint) == "string" and #hint > 10 and hint:find("\226\128\148") == nil then plain = plain + 1 end
     end
-    Equal(plain .. "/" .. #controls, "21/21", "every control says what it does on hover, no dashes")
+    Equal(plain .. "/" .. #controls, "22/22", "every control says what it does on hover, no dashes")
     -- See-through: 80% leaves a tenth, and past it, fainter still.
     local shown = {}
     for _, see in ipairs({ 0, 40, 80, 85, 90 }) do
@@ -799,7 +799,7 @@ do
     end
     for i, style in ipairs({ "Quick", "Long" }) do
         page.edit.buttons[i]:Click()
-        Equal(Laid(), "14 |  | ", style .. " under Edit: every tick, label, choice and slider inside the options, none on another")
+        Equal(Laid(), "15 |  | ", style .. " under Edit: every tick, label, choice and slider inside the options, none on another")
     end
     page.edit.buttons[1]:Click()
     Equal(H.Problems2D(page), "", "every piece of the page inside it, none on another")
@@ -842,7 +842,8 @@ do
     local from = 16 + Wide(title.text, title.template) + 10
     local longest = 0
     for _, said in ipairs({ "Off. Tick the box below to start.", "Nothing to pulse yet: tick some below.",
-        "12 cooldowns pulse when they're ready.", "Running in Forever Enhanced Cooldown Manager instead." }) do
+        "12 cooldowns pulse when they're ready.", "Running in Forever Enhanced Cooldown Manager instead.",
+        "12 cooldowns pulse when ready, 12 procs as they land.", "12 procs pulse as they land." }) do
         longest = math.max(longest, Wide(said, S[page.status].template))
     end
     local previewLeft = 638 - 16 - S[page.previewButton].width
@@ -1412,6 +1413,434 @@ do
     Equal(reads .. " " .. table.concat(keys, ",") .. " " .. off.Spells:Reads(), "0 slot:13 1",
         "off: never read at login; the items asked for first read it once, the trinket and all")
     Equal(H.Problems(), "", "no errors from the first read")
+end
+
+-- Procs: a pulse the moment one lands ---------------------------------------------------------------
+-- Procs too lists your class's procs to tick, each Quick or Long. Your buffs
+-- are secret in a fight and the addon never reads one: the game's own aura
+-- container gets a slot per proc ticked, told its buff's IDs out of a
+-- fight, whose icon is the pulse's look, every texture see-through, with one
+-- animation group handed over for the game to play as the icon comes into
+-- sight. The mock container does as the game does (Harness.lua H.Container
+-- and H.Auras). The same checks as Forever Enhanced Cooldown Manager's.
+
+do
+    local MANAGER = "ForeverEnhancedCooldownManager"
+    -- A mage logged in with these settings, the window open on the page.
+    -- shown: how the game takes a handed animation (H.shownAnimations);
+    -- bare: a game without the containers; manager: Forever Enhanced
+    -- Cooldown Manager on the link first, its pulse on.
+    local function Mage(saved, shown, bare, manager)
+        H.Environment()
+        H.shownAnimations = shown
+        if bare then _G.CustomAuraContainerSlotDefaultOptions = nil end
+        H.character.class, H.character.classFile = "Mage", "MAGE"
+        if manager then
+            assert(loadfile("Link.lua"))(MANAGER, {})
+            ForeverPulseLink:Register(MANAGER, { name = "Forever Enhanced Cooldown Manager", rank = 2,
+                IsOn = function() return manager.on end, Refresh = function() end })
+            H.addOns[MANAGER] = true
+        end
+        local mns = H.Load(saved)
+        H.Tick(mns)
+        H.clock = H.clock + 5
+        mns.ShowWindow()
+        FECPFrame:Select("pulse")
+        return mns, FECPFrame.pages.pulse
+    end
+    -- The pulse's container: the one with proc slots.
+    local function Box()
+        for _, box in ipairs(H.containers) do
+            if S[box].slots.p1 then return box end
+        end
+    end
+    -- The page's proc rows: ticked or not, name, key, icon and style.
+    local function Procs(at)
+        local out = {}
+        for _, row in ipairs(at.rows) do
+            if S[row].shown and row.proc then
+                out[#out + 1] = (row.check.checked and "[x] " or "[ ] ") .. S[row.name].text .. " " .. row.key .. " "
+                    .. tostring(S[row.icon].texture) .. " " .. (row.style.selected == "long" and "Long" or "Quick")
+            end
+        end
+        return table.concat(out, " | ")
+    end
+    -- What a slot was told: its filter, on or off, and its buff IDs (any other filter named).
+    local function Told(slot)
+        if not slot then return "no slot" end
+        local ids, other = {}, {}
+        for key, value in pairs(slot.filters or {}) do
+            if key == "includeSpellIDs" then
+                for id in pairs(value) do ids[#ids + 1] = id end
+            else
+                other[#other + 1] = key
+            end
+        end
+        table.sort(ids)
+        return slot.filter .. " " .. tostring(slot.enabled) .. " " .. table.concat(ids, ",") .. (#other > 0 and (" +" .. table.concat(other, ",")) or "")
+    end
+    -- A texture's animations in the group: each fade's from, to, start and
+    -- length, then the grow's sizes, start, length, easing and middle (each
+    -- number to three places, trailing zeros off).
+    local function N(v) return (("%.3f"):format(v):gsub("%.?0+$", "")) end
+    local function Fades(group, target)
+        local out = {}
+        for _, anim in ipairs({ group:GetAnimations() }) do
+            if anim:GetTarget() == target then
+                if S[anim].kind == "Alpha" then
+                    out[#out + 1] = N(Last(anim, "SetFromAlpha")) .. ">" .. N(Last(anim, "SetToAlpha")) .. " @" .. N(Last(anim, "SetStartDelay"))
+                        .. " for " .. N(Last(anim, "SetDuration"))
+                else
+                    local origin = S[anim].last.SetOrigin
+                    out[#out + 1] = S[anim].kind .. " grow " .. N(Last(anim, "SetScaleFrom")) .. ">" .. N(Last(anim, "SetScaleTo")) .. " @"
+                        .. N(Last(anim, "SetStartDelay")) .. " for " .. N(Last(anim, "SetDuration")) .. " " .. tostring(Last(anim, "SetSmoothing"))
+                        .. " " .. origin[1] .. " " .. N(origin[2]) .. " " .. N(origin[3])
+                end
+            end
+        end
+        return table.concat(out, ", ")
+    end
+    local function Line(lns) return tostring(lns.DebugReport():match("Proc pulse:[^\n]*")) end
+    local function Spot(control) local p = S[control].points[1]; return p[1] .. " " .. p[2] .. " " .. p[3] end
+    -- Time passing: the clock on, then the timers waiting (one waiting
+    -- longer queues itself again, for the next).
+    local function Pass(seconds)
+        H.clock = H.clock + seconds
+        H.RunTimers()
+    end
+    -- A container's proc slots: their groups' plays in all, and whether an
+    -- icon showing is in sight (shown, and nothing it sits in see-through).
+    local function Plays(box)
+        local count = 0
+        for _, s in pairs(S[box].slots) do
+            for _, g in ipairs(S[s.button].shownAnimations) do count = count + S[g].plays end
+        end
+        return count
+    end
+    local function Seen(box)
+        for _, s in pairs(S[box].slots) do
+            if S[s.button].shown and H.InSight(s.button) then return true end
+        end
+        return false
+    end
+    -- What the game does and shows after something: whether the container
+    -- looked at all your buffs afresh on its next frame, how many pulses it
+    -- played, whether one is seen then, just before `wait` seconds are up,
+    -- and just after.
+    local function Replay(box, what, wait)
+        local plays = Plays(box)
+        what()
+        local now = tostring(H.Refresh()) .. " " .. (Plays(box) - plays) .. " " .. tostring(Seen(box))
+        Pass(wait - .1)
+        local before = tostring(Seen(box))
+        Pass(.2)
+        return now .. " " .. before .. " " .. tostring(Seen(box))
+    end
+
+    -- Off by default: the tick, free, under Trinkets and potions too; no container, no Procs in the list.
+    local mns, mpage = Mage({ notesSeen = "dev", helpSeen = true })
+    local MP = mns.Pulse
+    Equal(tostring(mns.Get("pulseProcs")) .. " " .. tostring(mpage.procs.checked) .. " " .. tostring(mpage.procs.usable) .. " " .. #H.containers
+        .. " " .. tostring(Rows(mpage):find("PROCS", 1, true)) .. " | " .. S[mpage.procs.text].text .. " | " .. Note(mpage.procs),
+        "false false true 0 nil | Procs too | Your class's procs, like Clearcasting or Missile Barrage: a pulse the moment one lands, in a"
+        .. " fight too. Procs pulse without a sound. (experimental)",
+        "off by default: its tick free, saying what it does, quietly experimental; no container made, no Procs in the list")
+    Equal(Spot(mpage.items) .. " | " .. Spot(mpage.procs) .. " | " .. Spot(mpage.volume) .. " | " .. S[mpage.options].height .. " "
+        .. S[mpage.look].height, "TOPLEFT 312 -94 | TOPLEFT 312 -116 | TOPLEFT 312 -138 | 156 130",
+        "right under Trinkets and potions too, Master volume moved down, the options taller and the walkthrough's part with them")
+
+    -- On, for a mage: his four procs by name, each keyed by its buff's ID.
+    mpage.procs:Click()
+    local rows = Rows(mpage)
+    Equal(tostring(mns.Get("pulseProcs")) .. " " .. #H.containers .. " | " .. Procs(mpage) .. " | " .. S[mpage.status].text .. " | "
+        .. tostring(rows:find("SPELLS", 1, true) < rows:find("PROCS", 1, true)),
+        "true 0 | [ ] Clearcasting proc:12536 136170 Quick | [ ] Fingers of Frost proc:400670 236227 Quick | [ ] Heating Up proc:400625 236218"
+        .. " Quick | [ ] Missile Barrage proc:400589 236221 Quick | Nothing to pulse yet: tick some below. | true",
+        "ticked on: the mage's procs under the spells, by name, each keyed by its first buff's ID with its icon, unticked and Quick; still no container")
+    local barrage = RowFor(mpage, "proc:400589")
+    Equal(S[barrage.long].text .. "| " .. Note(barrage.check) .. " | " .. Note(barrage.style.buttons[2]),
+        "| Tick to pulse when Missile Barrage lands. (experimental) | Once ticked, Missile Barrage pulses Quick. Click for Long. Each style has"
+        .. " its own size and time, set under Edit above. Procs pulse without a sound.",
+        "no cooldown beside it; its tick and switch say what they do, a proc's style without a sound")
+
+    -- Ticked: the container, made now, and slot p1 told Missile Barrage's two buffs.
+    barrage.check:Click()
+    local box = Box()
+    local slot = box and S[box].slots.p1
+    local made = 0
+    for _ in pairs(box and S[box].slots or {}) do made = made + 1 end
+    Equal(tostring(box ~= nil) .. " " .. #H.containers .. " " .. tostring(S[box].template) .. " " .. tostring(S[box].parent == UIParent) .. " "
+        .. tostring(S[box].unit) .. " " .. tostring(S[box].preview) .. " " .. tostring(Last(box, "SetFrameStrata")) .. " "
+        .. tostring(Last(box, "EnableMouse")) .. " | " .. made .. " " .. Told(slot) .. " | " .. Saved("pulsePick") .. " | " .. S[mpage.status].text,
+        "true 1 CustomAuraContainerTemplate true player false HIGH false | 1 HELPFUL true 400589,1326083 | proc:400589 | 1 proc pulses as it lands.",
+        "ticked: one container of the game's, the player's, high up, no mouse, no Edit Mode stand-ins; one slot for your buffs told both IDs, on")
+    Equal((Note(RowFor(mpage, "proc:400589").check)), "Untick to leave Missile Barrage out.", "ticked, its row says how to leave it out")
+    -- Made and told its proc, the game looks at all your buffs afresh: the
+    -- container see-through for the cooldown pulse's quiet and a Quick
+    -- pulse (2 and 1 seconds, and a moment), then seen again.
+    do
+        local made = tostring(S[box].full) .. " " .. S[box].alpha .. " " .. tostring(Line(mns):match("hushed %d+, hush refused %a+"))
+        H.Refresh({})
+        Pass(MP.QUIET + 1.15)
+        local hushed = S[box].alpha
+        Pass(.2)
+        Equal(made .. " | " .. hushed .. " " .. S[box].alpha, "true 0 hushed 1, hush refused no | 0 1",
+            "made and told: the game will look afresh, so it's hushed (the debug line counts it) for the quiet and a Quick pulse, then seen again")
+    end
+
+    -- Its look: on the addon's own frame, no mouse anywhere, the pulse's icon
+    -- given as the game's, every texture see-through, one group handed over.
+    local button = slot.button
+    local holder = S[button].all
+    local icon = slot.supplied.SetIcon
+    local art = S[icon].parent
+    local group = S[button].shownAnimations[1]
+    local at = S[holder].points[1]
+    Equal(tostring(Last(button, "EnableMouse")) .. " " .. tostring(Last(art, "EnableMouse")) .. " " .. tostring(Last(holder, "EnableMouse")) .. " "
+        .. tostring(S[holder].parent == UIParent) .. " " .. tostring(S[art].all == button) .. " " .. tostring(icon == art.texture) .. " "
+        .. tostring(S[art].parent == button) .. " | " .. table.concat({ at[1], tostring(at[2] == UIParent), at[3], at[4], at[5] }, " ") .. " "
+        .. S[holder].width .. "x" .. S[holder].height .. " | " .. #S[button].shownAnimations,
+        "false false false true true true true | CENTER true CENTER 0 0 272x272 | 1",
+        "the game's icon over the addon's frame in the pulse's spot at Quick's size, the pulse's icon given as its own, no mouse on any; one group handed")
+    local anims, targets, textures, inside, unseen, scripted = { group:GetAnimations() }, {}, 0, 0, 0, 0
+    for _, region in ipairs({ group, art, button, holder }) do
+        if next(S[region].scripts) then scripted = scripted + 1 end
+    end
+    for _, anim in ipairs(anims) do
+        if next(S[anim].scripts) then scripted = scripted + 1 end
+        local target = anim:GetTarget()
+        if not targets[target] then
+            targets[target] = true
+            if S[target].kind == "Texture" then textures = textures + 1 end
+            if H.Inside(target, button) then inside = inside + 1 end
+            if S[target].alpha == 0 then unseen = unseen + 1 end
+            if next(S[target].scripts) then scripted = scripted + 1 end
+        end
+    end
+    Equal(#anims .. " animations, " .. textures .. " textures, " .. inside .. " inside, " .. unseen .. " see-through, " .. scripted .. " scripts | "
+        .. tostring(S[group].handed) .. " " .. tostring(S[group].parent == art),
+        "84 animations, 21 textures, 21 inside, 21 see-through, 0 scripts | true true",
+        "the icon, its border's four strips and the shadow's sixteen: each a texture inside the game's icon, see-through until it plays,"
+        .. " four animations each; no scripts on anything")
+    Equal(Fades(group, icon), "0>0.1 @0 for 0.15, 0.1>0.1 @0.15 for 0.3, 0.1>0 @0.45 for 0.55, Scale grow 1>1.35 @0 for 1 OUT CENTER 0 0",
+        "the icon: in fast to the pulse's opacity, held, out, growing to Grows to over Quick's time from its middle, quickly at first")
+    Equal(Fades(group, art.border[1]):match("Scale.*$") .. " | " .. Fades(group, art.border[4]):match("Scale.*$") .. " | "
+        .. Fades(group, art.shadow[1][3]):match("Scale.*$") .. " | " .. Fades(group, art.shadow[4][2]):match("Scale.*$"),
+        "Scale grow 1>1.35 @0 for 1 OUT CENTER 0 -137 | Scale grow 1>1.35 @0 for 1 OUT CENTER -137 0 | Scale grow 1>1.35 @0 for 1 OUT CENTER 140 0"
+        .. " | Scale grow 1>1.35 @0 for 1 OUT CENTER 0 152",
+        "each ring's strips grow from the icon's middle: the border's top and right, the shadow's first left and last bottom")
+    -- Its look runs only as the addon adds the slot: called again by the game later, it does nothing.
+    local stray = H.New("Button")
+    local objects = #H.objects
+    slot.options.initializeFrame(stray)
+    Equal(H.Calls(stray, "EnableMouse") .. " " .. (#H.objects - objects) .. " " .. tostring(rawget(stray, "art")), "0 0 nil",
+        "the look, run outside the addon adding its slot: nothing made, nothing touched")
+
+    -- The game plays it as the proc lands; not again while it's up; again once it's gone and back.
+    H.Auras({ { id = 400589 } })
+    local landed = S[group].plays .. " " .. tostring(S[button].shown) .. " " .. tostring(S[group].playing) .. " " .. tostring(Seen(box))
+    H.Auras({ { id = 400589 }, { id = 12536 } })
+    local still = S[group].plays
+    H.Auras({ { id = 12536 } })
+    local gone = S[group].plays .. " " .. tostring(S[button].shown) .. " " .. tostring(S[group].playing)
+    H.Auras({ { id = 400589, harmful = true } })
+    local harmful = S[group].plays .. " " .. tostring(S[button].shown)
+    H.Auras({ { id = 1326083 } })
+    Equal(landed .. " | " .. still .. " | " .. gone .. " | " .. harmful .. " | " .. S[group].plays .. " | " .. H.addonCalls .. " "
+        .. tostring(MP:Showing()) .. " " .. #H.sounds,
+        "1 true true true | 1 | 1 false false | 1 false | 2 | 0 nil 0",
+        "Missile Barrage lands: it pulses, seen; still up: not again; gone: stopped; a debuff of its ID: nothing; back (its other buff): again."
+        .. " None of the addon's code ran, and the cooldown pulse and its sounds untouched")
+
+    -- Still up (its other buff), the game would replay it each time it
+    -- looks at all your buffs afresh. Each time it does, unseen: hushed for
+    -- a Quick pulse (and the quiet after a loading screen or a change to
+    -- the slots), then seen again. A fight starting (UNIT_FLAGS) and
+    -- ending, in the fight only its see-through changed; your PvP flag
+    -- (UNIT_FACTION); a loading screen (its full aura update); the
+    -- interface back after Alt+Z; Heating Up ticked, the slots told again
+    -- (Missile Barrage moves to the second, after Heating Up by name), and
+    -- unticked. The same checks as Forever Enhanced Cooldown Manager's.
+    local quick, quiet = MP:Seconds("quick") + .25, MP.QUIET + MP:Seconds("quick") + .25
+    do
+        local calls = H.containerCallsInCombat
+        local fight = Replay(box, function()
+            H.Combat(true)
+            H.Fire("UNIT_FLAGS", "player")
+        end, quick)
+        local told = H.containerCallsInCombat - calls
+        local ended = Replay(box, function()
+            H.Combat(false)
+            H.Fire("UNIT_FLAGS", "player")
+        end, quick)
+        local faction = Replay(box, function() H.Fire("UNIT_FACTION", "player") end, quick)
+        local loading = Replay(box, function()
+            H.Fire("PLAYER_ENTERING_WORLD")
+            H.Fire("UNIT_AURA", "player", { isFullUpdate = true })
+        end, quiet)
+        local altZ = Replay(box, function()
+            H.Interface(false)
+            H.Interface(true)
+        end, quick)
+        local heating = Replay(box, function() RowFor(mpage, "proc:400625").check:Click() end, quiet)
+        local second = Told(S[box].slots.p2)
+        local unticked = Replay(box, function() RowFor(mpage, "proc:400625").check:Click() end, quiet)
+        Equal(table.concat({ fight, told, ended, faction, loading, altZ, heating, second, unticked }, " | "),
+            "true 1 false false true | 0 | true 1 false false true | true 1 false false true | true 1 false false true | true 1 false false true"
+            .. " | true 1 false false true | HELPFUL true 400589,1326083 | true 1 false false true",
+            "Missile Barrage up: the game replays it as a fight starts and ends, your PvP flag changes, after a loading screen, Alt+Z,"
+            .. " and Heating Up ticked and unticked; each time unseen, for as long as it lasts, then seen again; in the fight nothing told the game")
+        -- Not for your target's flags, nor when nothing changed on the page.
+        local hushes = Line(mns):match("hushed %d+")
+        local target = Replay(box, function() H.Fire("UNIT_FLAGS", "target") end, quick)
+        local same = Replay(box, function() MP:Apply() end, quick)
+        Equal(target .. " | " .. same .. " | " .. tostring(Line(mns):match("hushed %d+") == hushes) .. " " .. #H.printed,
+            "false 0 true true true | false 0 true true true | true 0",
+            "your target's flags, or the page applied with nothing new: the game doesn't look afresh, nothing hushed, nothing printed")
+    end
+
+    -- Moved, Long, and the look both styles share: the frame and the animations follow.
+    mns.Set("pulseX", 50)
+    mns.Set("pulseY", -30)
+    MP:Apply()
+    at = S[holder].points[1]
+    Equal(table.concat({ at[1], tostring(at[2] == UIParent), at[3], at[4], at[5] }, " "), "CENTER true CENTER 50 -30", "moved: its frame follows")
+    Switch(RowFor(mpage, "proc:400589"), "long")
+    Equal(Saved("pulseStyle") .. " " .. S[holder].width .. " " .. tostring(S[box].slots.p1 == slot) .. " " .. #S[button].shownAnimations .. " | "
+        .. Fades(group, icon) .. " | " .. Fades(group, art.border[1]):match("CENTER.*$") .. " | " .. tostring(Line(mns):match("retune refused %a+")),
+        "proc:400589 400 true 1 | 0>0.1 @0 for 0.375, 0.1>0.1 @0.375 for 0.75, 0.1>0 @1.125 for 1.375, Scale grow 1>1.35 @0 for 2.5 OUT CENTER 0 0"
+        .. " | CENTER 0 -201.5 | retune refused no",
+        "Long: saved by its key, the same slot at Long's size and time, its rings from the middle of the bigger icon, retuned with no refusal")
+    mns.Set("pulseSeeThrough", 40)
+    mns.Set("pulseGrow", 150)
+    MP:Apply()
+    Equal(Fades(group, icon), "0>0.55 @0 for 0.375, 0.55>0.55 @0.375 for 0.75, 0.55>0 @1.125 for 1.375, Scale grow 1>1.5 @0 for 2.5 OUT CENTER 0 0",
+        "See-through and Grows to: the fades reach the pulse's opacity, the grow its size")
+    Switch(RowFor(mpage, "proc:400589"), "quick")
+
+    -- In a fight: nothing told the game until it ends.
+    H.lockdown = true
+    local calls = H.containerCallsInCombat
+    RowFor(mpage, "proc:400589").check:Click()
+    RowFor(mpage, "proc:400625").check:Click()
+    Equal((H.containerCallsInCombat - calls) .. " " .. Told(S[box].slots.p1) .. " | " .. tostring(Line(mns):match("pending %a+")),
+        "0 HELPFUL true 400589,1326083 | pending true", "Missile Barrage unticked and Heating Up ticked in a fight: nothing told the game, it waits")
+    H.Combat(false)
+    Equal(Told(S[box].slots.p1) .. " " .. S[holder].width .. " | " .. tostring(Line(mns):match("pending %a+")), "HELPFUL true 400625 272 | pending false",
+        "as the fight ends: the slot told Heating Up, at Quick's size")
+
+    -- Unticked, the pulse off, or running in Forever Enhanced Cooldown Manager: switched off.
+    RowFor(mpage, "proc:400625").check:Click()
+    local unticked = Told(S[box].slots.p1)
+    RowFor(mpage, "proc:400625").check:Click()
+    mpage.master:Click()
+    local off = Told(S[box].slots.p1)
+    mpage.master:Click()
+    local again = Told(S[box].slots.p1)
+    assert(loadfile("Link.lua"))(MANAGER, {})
+    ForeverPulseLink:Register(MANAGER, { name = "Forever Enhanced Cooldown Manager", rank = 2,
+        IsOn = function() return true end, Refresh = function() end })
+    local there = Told(S[box].slots.p1)
+    ForeverPulseLink.owners[MANAGER] = nil
+    ForeverPulseLink:Notify(MANAGER)
+    local back = Told(S[box].slots.p1)
+    mpage.procs:Click()
+    local procsOff = Told(S[box].slots.p1) .. " " .. tostring(Rows(mpage):find("PROCS", 1, true))
+    mpage.procs:Click()
+    Equal(table.concat({ unticked, off, again, there, back, procsOff, Told(S[box].slots.p1) }, " | "),
+        "HELPFUL false 400625 | HELPFUL false 400625 | HELPFUL true 400625 | HELPFUL false 400625 | HELPFUL true 400625 | HELPFUL false 400625 nil"
+        .. " | HELPFUL true 400625", "switched off unticked, with the pulse off, while it runs in Forever Enhanced Cooldown Manager, and with"
+        .. " Procs too unticked; on again each time it's back")
+
+    -- /fecp debug: one line, with the hushes and whether the game keeps each ticked proc secret.
+    Equal((Line(mns):gsub("hushed %d+", "hushed N")), "Proc pulse: ticked 1, on true, game can true | slots made 2, on 1, taken 2/2,"
+        .. " retune refused no | pending false | hushed N, hush refused no | secret: Heating Up false | error none",
+        "the debug line: ticked, on, two slots made (Heating Up was ticked beside Missile Barrage) and the game took both, hushed with no"
+        .. " refusal, and Heating Up isn't secret")
+    H.spellAurasSecret[400625] = true
+    local secret = Line(mns):match("secret: [^|]*")
+    H.spellAurasSecret[400625] = H.SECRET
+    Equal(secret .. "| " .. Line(mns):match("secret: [^|]*"), "secret: Heating Up true | secret: Heating Up ? ",
+        "secret, and an answer that's secret itself: unknown")
+
+    -- A retune the game refuses: the frame still sized, the change waits for a reload, nothing printed.
+    for _, anim in ipairs(anims) do rawset(anim, "SetDuration", function() error("forbidden aspect") end) end
+    mns.Set("pulseSize", 304)
+    MP:Apply()
+    Equal(S[holder].width .. " " .. tostring(Line(mns):find("retune refused [^|]*forbidden aspect") ~= nil) .. " " .. #H.printed, "304 true 0",
+        "a retune refused: its frame still sized, the debug line says so, no error")
+
+    -- The game refusing the hush: Heating Up up, a fight's start replays it
+    -- and it's seen, as before; the debug line says so, nothing printed.
+    Pass(quiet)
+    Pass(.2)
+    H.Auras({ { id = 400625 } })
+    rawset(box, "SetAlpha", function() error("forbidden aspect") end)
+    local refused = Replay(box, function() H.Fire("UNIT_FLAGS", "player") end, quick)
+    rawset(box, "SetAlpha", nil)
+    Equal(refused .. " | " .. tostring(Line(mns):find("hush refused [^|]*forbidden aspect") ~= nil) .. " " .. #H.printed, "true 1 true true true | true 0",
+        "the hush refused: the replay seen as before, the debug line says so, no error")
+    Equal(H.Problems(), "", "no errors from proc pulses, nothing of the game's written on, no handed alpha set")
+
+    -- A game that won't take the animation, or has none: no error, nothing shows, and the debug line says so.
+    -- (Saved with Procs too on and Missile Barrage ticked, fresh each time.)
+    local function Mine()
+        return { notesSeen = "dev", helpSeen = true, pulseProcs = true, chars = { [H.character.guid] = "Mine" },
+            profiles = { Mine = { pulsePick = { ["proc:400589"] = true } } } }
+    end
+    local results = {}
+    for _, shown in ipairs({ "refuse", "none" }) do
+        local sns = Mage(Mine(), shown)
+        local sslot = S[Box()].slots.p1
+        H.Auras({ { id = 400589 } })
+        local line = Line(sns)
+        results[#results + 1] = Told(sslot) .. " " .. #S[sslot.button].shownAnimations .. " " .. S[sslot.supplied.SetIcon].alpha .. " "
+            .. tostring(line:match("taken %d/%d")) .. " " .. tostring(line:match("error none") == nil) .. " " .. #H.printed
+    end
+    Equal(table.concat(results, " | "), "HELPFUL true 400589,1326083 0 0 taken 0/1 true 0 | HELPFUL true 400589,1326083 0 0 taken 0/1 true 0",
+        "refused, or no way to hand it: the slot still there and on, its icon see-through, the debug line says it wasn't taken, nothing printed")
+
+    -- A game without the containers: the tick greyed, saying why; nothing made, even saved on.
+    local bns, bpage = Mage(Mine(), nil, true)
+    Equal(tostring(bpage.procs.checked) .. " " .. tostring(bpage.procs.usable) .. " " .. #H.containers .. " " .. Procs(bpage) .. "| " .. Note(bpage.procs)
+        .. " | " .. tostring(Line(bns):match("game can %a+")) .. " | " .. S[bpage.status].text,
+        "true false 0 | Your game can't show proc pulses. | game can false | Nothing to pulse yet: tick some below.",
+        "no containers: Procs too greyed with why, no rows, nothing made")
+
+    -- Forever Enhanced Cooldown Manager loaded and running: this addon makes
+    -- no slot at all, its procs still listed; turned off there, this one
+    -- takes over and its slot is told.
+    local manager = { on = true }
+    local fns, fpage = Mage(Mine(), nil, nil, manager)
+    local waiting = #H.containers .. " " .. tostring(Line(fns):match("on %a+")) .. " " .. Procs(fpage) .. " | " .. S[fpage.status].text
+    manager.on = false
+    ForeverPulseLink:Notify(MANAGER)
+    Equal(waiting .. " | " .. Told(Box() and S[Box()].slots.p1) .. " " .. tostring(Line(fns):match("on %a+")),
+        "0 on false [ ] Clearcasting proc:12536 136170 Quick | [ ] Fingers of Frost proc:400670 236227 Quick | [ ] Heating Up proc:400625 236218 Quick"
+        .. " | [x] Missile Barrage proc:400589 236221 Quick | Running in Forever Enhanced Cooldown Manager instead. | HELPFUL true 400589,1326083 on true",
+        "with Forever Enhanced Cooldown Manager's pulse on: no container, no slot, here; turned off there: this one's slot told and on")
+    -- Its older version (loaded, not on the link, its pulse saved on): the same.
+    H.Environment()
+    H.character.class, H.character.classFile = "Mage", "MAGE"
+    H.Manager({ pulse = true })
+    local ons = H.Load(Mine())
+    H.Tick(ons)
+    Equal(#H.containers .. " " .. tostring(Line(ons):match("on %a+")), "0 on false", "an older Forever Enhanced Cooldown Manager running: no slot either")
+    H.Manager(nil)
+
+    -- Logged in or reloaded with Missile Barrage up: its slot made on the
+    -- first frame, the game shows it at once, unseen; seen again after the
+    -- quiet and a Quick pulse.
+    H.Environment()
+    H.character.class, H.character.classFile = "Mage", "MAGE"
+    local rns = H.Load(Mine())
+    H.Tick(rns)
+    local rbox = Box()
+    local reload = Replay(rbox, function() H.current = { { id = 400589 } } end, quiet)
+    Equal(reload .. " | " .. tostring(Line(rns):match("hushed %d+")), "true 1 false false true | hushed 1",
+        "reloaded with Missile Barrage up: shown at once, unseen, for the quiet and a Quick pulse, then seen again")
+    H.character.class, H.character.classFile = "Druid", "DRUID"
+    Equal(H.Problems(), "", "no errors from proc pulses")
 end
 
 Equal(H.Problems(), "", "no errors")

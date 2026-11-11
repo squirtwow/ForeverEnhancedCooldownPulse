@@ -12,7 +12,10 @@
 --
 -- For the pulse: a spellbook (H.Book), trinkets, bags and item counts,
 -- cooldowns on hold, the game's sounds, and Forever Enhanced Cooldown
--- Manager loaded or not, with its saved settings (H.Manager). The game's
+-- Manager loaded or not, with its saved settings (H.Manager). For the proc
+-- pulses: the game's aura container (H.Container), your buffs landing and
+-- going (H.Auras), its full refreshes (H.Refresh), animations, the
+-- interface hidden and back (H.Interface), and the procs' names. The game's
 -- language is H.locale (GetLocale), and text is measured by its script
 -- (Chinese wide, Cyrillic a little wider than English; see Letters).
 local H = {}
@@ -293,8 +296,41 @@ function Proto:SetBackdropBorderColor(r, g, b, a) S[self].border = { r, g, b, a 
 function Proto:SetBackdropColor(r, g, b, a) S[self].backdrop = { r, g, b, a } end
 function Proto:SetTextColor(r, g, b) S[self].colour = { r, g, b } end
 function Proto:SetShadowColor(_, _, _, a) S[self].shadow = a end
-function Proto:SetAlpha(a) S[self].alpha = a end
+-- Like the game: a region an animation handed to an aura icon animates
+-- keeps its alpha the game's, and stays where it is.
+function Proto:SetAlpha(a)
+    if S[self].handed then
+        Violation("set the alpha of a region an aura icon's animation animates")
+        error("the alpha of a region an aura icon's animation animates", 2)
+    end
+    S[self].alpha = a
+end
 function Proto:GetAlpha() return S[self].alpha end
+function Proto:SetParent(parent)
+    if S[self].handed then Violation("moved a region an aura icon's animation animates") end
+    Record(self, "SetParent", parent)
+end
+-- Animations, as the game makes them: a group on a frame or texture (it's
+-- that one's), and the animations in it, each on the group's own frame or
+-- texture unless given a target. Each group counts its plays. Their
+-- setters (SetFromAlpha, SetDuration, SetOrigin...) are only recorded.
+function Proto:CreateAnimationGroup()
+    local group = New("AnimationGroup", self)
+    S[group].anims, S[group].plays = {}, 0
+    return group
+end
+function Proto:CreateAnimation(kind)
+    if S[self].handed then Violation("added an animation to a group handed to an aura icon") end
+    local animation = New(kind, self)
+    table.insert(S[self].anims, animation)
+    return animation
+end
+function Proto:GetAnimations() return table.unpack(S[self].anims) end
+function Proto:SetTarget(target) S[self].target = target; Record(self, "SetTarget", target) end
+function Proto:GetTarget() local s = S[self]; return s.target or S[s.parent].parent end
+function Proto:Play() local s = S[self]; s.plays, s.playing = (s.plays or 0) + 1, true end
+function Proto:Stop() S[self].playing = false end
+function Proto:IsPlaying() return S[self].playing == true end
 function Proto:GetCenter() return S[self].cx, S[self].cy end
 function Proto:GetFrameLevel() return S[self].level or 1 end
 function Proto:SetFrameLevel(level) S[self].level = level; Record(self, "SetFrameLevel", level) end
@@ -440,6 +476,233 @@ local function BookItem(index)
     end
 end
 
+-- The procs' buffs by name, by their first IDs (Pulse.lua's P.PROCS, as its
+-- comments name them), and the icons of the druid's and the mage's.
+H.PROC_NAMES = { [16870] = "Clearcasting", [16886] = "Nature's Grace", [408255] = "Eclipse", [6150] = "Quick Shots",
+    [415407] = "Rapid Killing", [1242512] = "Rapid Recuperation", [1242688] = "Resourcefulness", [1310726] = "Expose Prey",
+    [12536] = "Clearcasting", [400589] = "Missile Barrage", [400625] = "Heating Up", [400670] = "Fingers of Frost",
+    [20050] = "Vengeance", [20128] = "Redoubt", [53672] = "Infusion of Light", [20272] = "Illumination", [1311033] = "Iron Creed",
+    [1328551] = "Shieldsworn", [440668] = "Vindication", [15271] = "Spirit Tap", [1326168] = "Dark Inspiration",
+    [27813] = "Blessed Recovery", [14143] = "Remorseless", [1329282] = "Quick Getaway", [1310703] = "Venom",
+    [16246] = "Clearcasting", [16257] = "Flurry", [408505] = "Maelstrom Weapon", [30165] = "Elemental Devastation",
+    [1238931] = "Improved Stormstrike", [415144] = "Mental Dexterity", [17941] = "Shadow Trance", [440873] = "Decimation",
+    [1242853] = "Soul Harvest", [12966] = "Flurry", [12880] = "Enrage", [16488] = "Blood Craze", [1323969] = "Gore Drinker" }
+H.PROC_ICONS = { [16870] = 136170, [16886] = 136062, [408255] = 236151, [12536] = 136170, [400589] = 236221, [400625] = 236218,
+    [400670] = 236227 }
+
+-- Whether a slot takes an aura ({ id =, harmful = }): its filter's
+-- HELPFUL or HARMFUL, and its buff IDs.
+local function Matches(slot, aura)
+    for token in tostring(slot.filter):gmatch("[^|]+") do
+        assert(token == "HELPFUL" or token == "HARMFUL" or token == "PLAYER", "a filter the game knows: " .. token)
+    end
+    if (slot.filter:find("HARMFUL") ~= nil) ~= (aura.harmful == true) then return false end
+    local filters = slot.filters or {}
+    if filters.includeSpellIDs and not filters.includeSpellIDs[aura.id] then return false end
+    return true
+end
+
+-- Blizzard's secure aura container (CustomAuraContainerTemplate), as made
+-- by CreateFrame("AuraContainer"). Its own: writing a key on it or on its
+-- icons is a violation, and every call into it in a fight is counted
+-- (H.containerCallsInCombat). Like the game: a slot's icon is made as the
+-- slot is added, hidden, and its look (initializeFrame) run on it then, the
+-- only addon code the container ever runs; each slot keeps what it was
+-- told. An animation group handed to an icon (AddAuraShownAnimation) must
+-- sit inside it, as must every animation's target; after that the group
+-- takes no more animations and its targets' alpha is the game's
+-- (AuraContainerUtil.InitializeInboundAnimationGroup). H.shownAnimations:
+-- "refuse", a game turning one down; "none", a game without them.
+--
+-- Like the game, what makes it look at all your buffs afresh on its next
+-- frame (UpdateAllAuras, Blizzard_ManagedAuraContainer.lua and
+-- Blizzard_CustomAuraContainer.lua) is noted in s.full, which H.Refresh
+-- plays out: a slot added, switched or told its filters, its unit, its own
+-- OnShow and OnHide, and what it hears while it can be seen: a full
+-- UNIT_AURA (none given, or isFullUpdate: a loading screen) and, once a
+-- slot is told buff IDs, UNIT_FLAGS and UNIT_FACTION for you (a fight
+-- starting or ending, a stun, your PvP flag: Blizzard_AuraContainerUtil.lua
+-- AppendCandidateFilterUnitEvents).
+function H.Container(f, template)
+    assert(template == "CustomAuraContainerTemplate", "secure custom aura container")
+    local s = S[f]
+    s.slots, s.made = {}, 0
+    H.containers[#H.containers + 1] = f
+    local function Guard() if H.lockdown then H.containerCallsInCombat = H.containerCallsInCombat + 1 end end
+    local function Full() s.full = true end
+    local function Named(filters)
+        if type(filters) == "table" and (filters.includeSpellIDs or filters.excludeSpellIDs) then s.flags = true end
+    end
+    s.events.UNIT_AURA, s.events.UNIT_FLAGS, s.events.UNIT_FACTION = true, true, true
+    s.scripts.OnEvent = function(_, event, unit, info)
+        if not s.listening then return end
+        if event == "UNIT_AURA" then
+            if unit == s.unit and (type(info) ~= "table" or info.isFullUpdate) then Full() end
+        elseif unit == "player" and s.flags then
+            Full()
+        end
+    end
+    for _, which in ipairs({ "OnShow", "OnHide" }) do
+        s.scripts[which] = function()
+            s.listening = f:IsVisible()
+            Full()
+        end
+    end
+    local function Inside(region, button)
+        local at = S[region] and S[region].parent
+        while at do
+            if at == button then return true end
+            at = S[at] and S[at].parent
+        end
+        return false
+    end
+    rawset(f, "AddAuraSlot", function(_, key, filter, options)
+        Guard()
+        assert(type(key) == "string" and not s.slots[key], "a slot added once, by name")
+        for name, value in pairs(options or {}) do
+            assert(name == "initializeFrame" or type(value) ~= "function", "addon code handed to the container: " .. name)
+        end
+        local button = New("Button", f)
+        S[button].shown, S[button].frameTemplate, S[button].shownAnimations = false, "CustomAuraButtonTemplate", {}
+        local supplied = {}
+        S[button].supplied = supplied
+        rawset(button, "SetIcon", function(_, texture) supplied.SetIcon = texture end)
+        if H.shownAnimations == "none" then
+            rawset(button, "AddAuraShownAnimation", false)
+        else
+            rawset(button, "AddAuraShownAnimation", function(_, group)
+                if H.shownAnimations == "refuse" then error("bad object in function call") end
+                assert(S[group] and S[group].kind == "AnimationGroup" and Inside(group, button), "an animation group inside the icon")
+                local anims = { group:GetAnimations() }
+                for _, anim in ipairs(anims) do assert(Inside(anim:GetTarget(), button), "an animation on a region inside the icon") end
+                S[group].handed = true
+                for _, anim in ipairs(anims) do S[anim:GetTarget()].handed = true end
+                table.insert(S[button].shownAnimations, group)
+            end)
+        end
+        S[button].sealed = true
+        s.made = s.made + 1
+        s.slots[key] = { filter = filter, button = button, enabled = true, supplied = supplied, options = options }
+        if options and options.initializeFrame then options.initializeFrame(button) end
+        Named(options and options.candidateFilters)
+        Full()
+        return button
+    end)
+    rawset(f, "SetAuraSlotEnabled", function(_, key, enabled)
+        Guard()
+        assert(type(enabled) == "boolean" and s.slots[key], "a slot switched on or off")
+        s.slots[key].enabled = enabled
+        Full()
+    end)
+    rawset(f, "SetAuraSlotCandidateFilters", function(_, key, filters)
+        Guard()
+        assert(s.slots[key], "a slot told its filters")
+        s.slots[key].filters = filters
+        Named(filters)
+        Full()
+    end)
+    -- Its unit set, it hears that unit's auras while it can be seen.
+    rawset(f, "SetUnit", function(_, unit)
+        Guard()
+        if s.unit ~= unit then
+            s.listening = f:IsVisible()
+            Full()
+        end
+        s.unit = unit
+    end)
+    rawset(f, "SetEditModePreviewEnabled", function(_, on) Guard(); s.preview = on end)
+    s.sealed = true
+end
+
+-- The player's buffs now ({ id =, harmful = } each): every container's
+-- slots, switched on, show the first they take and hide the rest, playing an
+-- icon's shown animations as it comes into sight and stopping them as it
+-- goes (Blizzard_CustomAuraButton.lua ApplyVisibility). Each call into the
+-- addon's own files meanwhile is counted in H.addonCalls. (Your buffs as it
+-- last saw them are kept for H.Refresh.)
+H.addonCalls = 0
+function H.Auras(auras)
+    H.current = auras
+    debug.sethook(function()
+        local info = debug.getinfo(2, "S")
+        local source = info and info.source or ""
+        if source:sub(1, 1) == "@" and not source:find("Tools", 1, true) then H.addonCalls = H.addonCalls + 1 end
+    end, "c")
+    local ok, err = pcall(function()
+        for _, container in ipairs(H.containers) do
+            for _, slot in pairs(S[container].slots) do
+                local lit = false
+                for _, aura in ipairs(slot.enabled and auras or {}) do
+                    if Matches(slot, aura) then
+                        lit = true
+                        break
+                    end
+                end
+                local button = slot.button
+                local was = S[button].shown
+                S[button].shown = lit
+                for _, group in ipairs(S[button].shownAnimations) do
+                    if lit and not was then group:Play() elseif not lit then group:Stop() end
+                end
+            end
+        end
+    end)
+    debug.sethook()
+    if not ok then error(err, 0) end
+end
+
+-- Each container's next frame after a full refresh was asked for (its
+-- full), while it can be seen: every icon showing goes, its animations
+-- stopped, then each takes its aura again and comes into sight, playing them
+-- again (ResetFrameAssignments, then RefreshFrameAssignments). auras: your
+-- buffs now, else as last seen. True when one ran.
+function H.Refresh(auras)
+    local ran = false
+    for _, container in ipairs(H.containers) do
+        local s = S[container]
+        if s.full and container:IsVisible() then
+            s.full, ran = false, true
+            for _, slot in pairs(s.slots) do
+                S[slot.button].shown = false
+                for _, group in ipairs(S[slot.button].shownAnimations) do group:Stop() end
+            end
+        end
+    end
+    if ran then H.Auras(auras or H.current or {}) end
+    return ran
+end
+
+-- Whether a player sees a frame: shown, in shown frames, and none of them
+-- see-through (their alpha times its own).
+function H.InSight(frame)
+    local alpha = 1
+    while frame and S[frame] do
+        local s = S[frame]
+        if not s.shown then return false end
+        alpha = alpha * (s.alpha or 1)
+        frame = s.parent
+    end
+    return alpha > 0
+end
+
+-- The interface hidden or back (Alt+Z), as the game does it: UIParent, then
+-- every frame shown inside it, hears OnHide or OnShow.
+function H.Interface(shown)
+    if S[UIParent].shown == shown then return end
+    S[UIParent].shown = shown
+    local function Seen(frame)
+        for _, child in ipairs(S[frame].children) do
+            local c = S[child]
+            if c.shown then
+                local script = c.scripts[shown and "OnShow" or "OnHide"]
+                if script then script(child) end
+                Seen(child)
+            end
+        end
+    end
+    Seen(UIParent)
+end
+
 -- Forever Enhanced Cooldown Manager: not there (nil), or loaded with these
 -- saved settings, as its 1.5.0 is (it doesn't join the link).
 function H.Manager(saved)
@@ -525,9 +788,23 @@ function H.Environment()
             local secret = H.SECRETS.number
             return { isEnabled = not H.held[id], isOnGCD = H.onGCD[id], startTime = secret, duration = secret, modRate = secret }
         end,
-        GetSpellTexture = function() return 1 end,
-        GetSpellName = function() return nil end,
+        -- The procs' buffs (Pulse.lua's P.PROCS) by name and icon, as the
+        -- game gives them; anything else has no name here.
+        GetSpellTexture = function(id) return H.PROC_ICONS[id] or 1 end,
+        GetSpellName = function(id) return H.PROC_NAMES[id] end,
     }
+    -- Whether the game keeps one spell's aura secret (H.spellAurasSecret[id]:
+    -- true, false or H.SECRET; not there is false), as /fecp debug asks of procs.
+    H.spellAurasSecret = {}
+    _G.C_Secrets = { ShouldSpellAuraBeSecret = function(id)
+        assert(type(id) == "number", "a spell ID")
+        if H.spellAurasSecret[id] == nil then return false end
+        return Typed("boolean", H.spellAurasSecret[id])
+    end }
+    -- Blizzard's secure aura containers (H.Container): there unless a test
+    -- takes them away, each made kept in H.containers.
+    _G.CustomAuraContainerSlotDefaultOptions = {}
+    H.containers, H.containerCallsInCombat, H.shownAnimations, H.addonCalls, H.current = {}, 0, nil, 0, nil
     _G.GetSpellBaseCooldown = nil
     -- Gear and bags: trinkets worn (slot -> item ID) and their cooldowns
     -- (slot -> start, length, enable); bag items ({ itemID, hyperlink,
@@ -578,6 +855,7 @@ function H.Environment()
         S[f].name, S[f].template = name, template
         H.frames[#H.frames + 1] = f
         if name then _G[name] = f end
+        if kind == "AuraContainer" then H.Container(f, template) end
         return f
     end
     _G.GameFontHighlight = { GetFont = function() return "font", 12, "" end }

@@ -12,7 +12,8 @@
 -- and inside « », everywhere (safe in any of the game's fonts). Cooldowns in
 -- the list as 45 s, 1,5 min, 2 h (the addon writes the decimal comma).
 -- Titles of the tour's steps in the infinitive or as a noun, as the game's
--- own French windows have them.
+-- own French windows have them. A proc is un proc (les procs), as French
+-- players say; it se déclenche.
 --
 -- Room, in the game's units (about 7.5 a letter, 6.5 in the small font):
 -- the page names on the left 130; the labels before a slider or choice
@@ -93,6 +94,8 @@ ns.LOCALES.frFR = {
     -- Pulse.lua: an error in chat, and the box that moves the pulse.
     ["the cooldown pulse couldn't follow a cooldown. Please report this: %s"]
         = "la pulsation n'a pas pu suivre un temps de recharge. Merci de nous le signaler : %s",
+    ["proc pulses couldn't start. Please report this: %s"]
+        = "les pulsations des procs n'ont pas pu démarrer. Merci de nous le signaler : %s",
     ["Finish the fight first, then move it."] = "Terminez d'abord le combat, puis déplacez-la.",
     ["Cooldown pulse"] = "Pulsation",
     ["Done"] = "Terminé",
@@ -145,6 +148,10 @@ ns.LOCALES.frFR = {
     ["Trinkets and potions too"] = "Bijoux et potions aussi",
     ["Your trinkets, potions, healthstones and other items with a use in your bags. Only ones with a cooldown pulse."]
         = "Vos bijoux, potions, pierres de soins et autres objets utilisables dans vos sacs. Seuls ceux avec un temps de recharge sont signalés.",
+    ["Procs too"] = "Procs aussi",
+    ["Your class's procs, like Clearcasting or Missile Barrage: a pulse the moment one lands, in a fight too. Procs pulse without a sound."]
+        = "Les procs de votre classe, comme Idées claires ou Barrage de projectiles : une pulsation dès que l'un d'eux se déclenche, même en combat. Les procs sont signalés sans son.",
+    ["Your game can't show proc pulses."] = "Votre jeu ne peut pas afficher les pulsations des procs.",
     ["Play at Master volume"] = "Jouer au volume principal",
     ["Plays the sound at your Master volume, so you hear it with Sound Effects down or off. Your sound settings don't change."]
         = "Joue le son au volume principal, pour l'entendre même avec les effets sonores baissés ou coupés. Vos réglages de son ne changent pas.",
@@ -153,6 +160,10 @@ ns.LOCALES.frFR = {
         = "cochez ceux à signaler, puis choisissez Rapide ou Longue",
     ["Untick to leave %s out."] = "Décochez pour ne plus signaler %s.",
     ["Tick to pulse when %s is ready."] = "Cochez pour être averti quand %s est disponible.",
+    ["Tick to pulse when %s lands."] = "Cochez pour être averti quand %s se déclenche.",
+    ["Each style has its own size and time, set under Edit above. Procs pulse without a sound."]
+        = "Taille et durée de chaque style : sous Modifier plus haut. Procs signalés sans son.",
+    ["Procs"] = "Procs",
     [" (experimental)"] = " (expérimental)",
     ["%s pulses %s."] = "%s : pulsation %s.",
     ["Once ticked, %s pulses %s."] = "Une fois la case cochée, %s aura une pulsation %s.",
@@ -172,6 +183,12 @@ ns.LOCALES.frFR = {
     ["Preview %s"] = "Aperçu (%s)",
     ["1 cooldown pulses when it's ready."] = "1 temps de recharge signalé quand il est prêt.",
     ["%d cooldowns pulse when they're ready."] = "%d temps de recharge signalés quand ils sont prêts.",
+    ["1 proc pulses as it lands."] = "1 proc signalé quand il se déclenche.",
+    ["%d procs pulse as they land."] = "%d procs signalés quand ils se déclenchent.",
+    ["1 cooldown pulses when ready, %s"] = "1 temps de recharge et %s",
+    ["%d cooldowns pulse when ready, %s"] = "%d temps de recharge et %s",
+    ["1 proc as it lands."] = "1 proc signalés.",
+    ["%d procs as they land."] = "%d procs signalés.",
     ["Nothing to pulse yet: tick some below."] = "Rien à signaler pour l'instant : cochez-en ci-dessous.",
     ["Running in %s instead."] = "Active dans %s à la place.",
     ["Off. Tick the box below to start."] = "Désactivée. Cochez la case ci-dessous pour commencer.",
@@ -391,6 +408,8 @@ ns.LOCALES.frFR = {
         = "La pulsation ne se déclenche plus en combat pour un sort déjà prêt, pour ceux qui le voyaient encore après la 1.0.7.",
     ["Shooting a wand no longer pulses ready spells."]
         = "Tirer à la baguette ne déclenche plus la pulsation des sorts prêts.",
+    ["Added procs to Cooldown pulse."]
+        = "Ajout des procs à la pulsation de recharge.",
     ["The pulse no longer goes off again and again in a fight for a spell that's already ready."]
         = "La pulsation ne se déclenche plus encore et encore en combat pour un sort déjà prêt.",
     ["Spell data updated for launch."]

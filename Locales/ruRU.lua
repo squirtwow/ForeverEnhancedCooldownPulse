@@ -12,7 +12,8 @@
 -- them (30 сек, 6 мин, 1 ч). Short words where the room is tight:
 -- Прозрачн. (See-through), Узк. and Шир. (Thin and Thick), перс.
 -- Grouped by the file that shows each, as in zhCN.lua; the same English
--- always gets the same Russian. No em or en dashes.
+-- always gets the same Russian. No em or en dashes. A proc is прок (проки,
+-- проков), as players say; it срабатывает (при срабатывании).
 local _, ns = ...
 
 ns.LOCALES.ruRU = {
@@ -79,6 +80,8 @@ ns.LOCALES.ruRU = {
     -- Pulse.lua: an error in chat, and the box that moves the pulse.
     ["the cooldown pulse couldn't follow a cooldown. Please report this: %s"]
         = "вспышке не удалось отследить восстановление. Пожалуйста, сообщите об этом: %s",
+    ["proc pulses couldn't start. Please report this: %s"]
+        = "вспышки проков не удалось запустить. Пожалуйста, сообщите об этом: %s",
     ["Finish the fight first, then move it."] = "Сначала выйдите из боя, потом сдвигайте.",
     ["Cooldown pulse"] = "Вспышка",
     ["Done"] = "Готово",
@@ -131,6 +134,10 @@ ns.LOCALES.ruRU = {
     ["Trinkets and potions too"] = "Также аксессуары и зелья",
     ["Your trinkets, potions, healthstones and other items with a use in your bags. Only ones with a cooldown pulse."]
         = "Ваши аксессуары, зелья, камни здоровья и другие используемые предметы в сумках. Вспыхивают только те, у которых есть восстановление.",
+    ["Procs too"] = "Также проки",
+    ["Your class's procs, like Clearcasting or Missile Barrage: a pulse the moment one lands, in a fight too. Procs pulse without a sound."]
+        = "Проки вашего класса, например «Ясность мысли» или «Шквал чародейских стрел»: вспышка в момент срабатывания, в том числе в бою. Проки вспыхивают без звука.",
+    ["Your game can't show proc pulses."] = "Ваша игра не может показывать вспышки проков.",
     ["Play at Master volume"] = "Звук на общей громкости",
     ["Plays the sound at your Master volume, so you hear it with Sound Effects down or off. Your sound settings don't change."]
         = "Проигрывает звук на общей громкости, чтобы его было слышно даже при тихих или выключенных звуковых эффектах. Ваши настройки звука не меняются.",
@@ -139,6 +146,10 @@ ns.LOCALES.ruRU = {
         = "отметьте нужное, затем выберите для каждого «Быстро» или «Долго»",
     ["Untick to leave %s out."] = "Снимите отметку, чтобы убрать «%s».",
     ["Tick to pulse when %s is ready."] = "Отметьте для вспышки по готовности: %s.",
+    ["Tick to pulse when %s lands."] = "Отметьте для вспышки при срабатывании: %s.",
+    ["Each style has its own size and time, set under Edit above. Procs pulse without a sound."]
+        = "Размер и время стиля задаются в строке «Изменить» выше. Проки вспыхивают без звука.",
+    ["Procs"] = "Проки",
     [" (experimental)"] = " (экспериментально)",
     ["%s pulses %s."] = "%s: вспышка «%s».",
     ["Once ticked, %s pulses %s."] = "%s (после отметки): вспышка «%s».",
@@ -158,6 +169,12 @@ ns.LOCALES.ruRU = {
     ["Preview %s"] = "Показ «%s»",
     ["1 cooldown pulses when it's ready."] = "Отмечено для вспышки: 1.",
     ["%d cooldowns pulse when they're ready."] = "Отмечено для вспышки: %d.",
+    ["1 proc pulses as it lands."] = "Проки для вспышки при срабатывании: 1.",
+    ["%d procs pulse as they land."] = "Проки для вспышки при срабатывании: %d.",
+    ["1 cooldown pulses when ready, %s"] = "Отмечено для вспышки: 1, %s",
+    ["%d cooldowns pulse when ready, %s"] = "Отмечено для вспышки: %d, %s",
+    ["1 proc as it lands."] = "проков: 1.",
+    ["%d procs as they land."] = "проков: %d.",
     ["Nothing to pulse yet: tick some below."] = "Пока ничего не вспыхивает: отметьте что-нибудь ниже.",
     ["Running in %s instead."] = "Работает в %s.",
     ["Off. Tick the box below to start."] = "Выключено. Поставьте отметку ниже, чтобы включить.",
@@ -378,6 +395,8 @@ ns.LOCALES.ruRU = {
         = "Вспышка больше не срабатывает в бою для заклинания, которое уже готово, у тех, кто ещё видел это после 1.0.7.",
     ["Shooting a wand no longer pulses ready spells."]
         = "Стрельба из жезла больше не вызывает вспышку для готовых заклинаний.",
+    ["Added procs to Cooldown pulse."]
+        = "Добавлены проки во вспышку восстановления.",
     ["The pulse no longer goes off again and again in a fight for a spell that's already ready."]
         = "Вспышка больше не срабатывает снова и снова в бою для заклинания, которое уже готово.",
     ["Spell data updated for launch."]

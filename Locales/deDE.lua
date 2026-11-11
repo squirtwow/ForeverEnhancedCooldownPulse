@@ -9,7 +9,8 @@
 -- (a tick, der Haken), the General page Allgemein, What's new
 -- Neuigkeiten, the tour die Tour, Edit Bearbeiten, a sound der Klang,
 -- Grows to Endgröße. Ctrl+C is Strg+C, as German keyboards and the game's
--- German client name the key.
+-- German client name the key. A proc is ein Proc (Procs), as German
+-- players say; it löst aus (beim Auslösen).
 -- Reset is Zentrieren, as Zurücksetzen has no room on its button, and
 -- Skip tour Beenden, Skip Nein danke, for the same reason.
 --
@@ -117,6 +118,7 @@ ns.LOCALES.deDE = {
     -- Pulse.lua: an error in chat, and the box that moves the pulse.
     ["the cooldown pulse couldn't follow a cooldown. Please report this: %s"]
         = "der Abklingzeit-Puls konnte eine Abklingzeit nicht verfolgen. Bitte melde das: %s",
+    ["proc pulses couldn't start. Please report this: %s"] = "die Proc-Pulse konnten nicht starten. Bitte melde das: %s",
     ["Finish the fight first, then move it."] = "Beende erst den Kampf, dann verschiebe ihn.",
     ["Cooldown pulse"] = "Abklingzeit-Puls",
     ["Done"] = "Fertig",
@@ -169,6 +171,10 @@ ns.LOCALES.deDE = {
     ["Trinkets and potions too"] = "Auch Schmuckstücke und Tränke",
     ["Your trinkets, potions, healthstones and other items with a use in your bags. Only ones with a cooldown pulse."]
         = "Deine Schmuckstücke, Tränke, Gesundheitssteine und andere benutzbare Gegenstände in deinen Taschen. Nur solche mit Abklingzeit pulsieren.",
+    ["Procs too"] = "Auch Procs",
+    ["Your class's procs, like Clearcasting or Missile Barrage: a pulse the moment one lands, in a fight too. Procs pulse without a sound."]
+        = "Die Procs deiner Klasse, etwa Freizaubern oder Geschosssalve: ein Puls, sobald einer auslöst, auch im Kampf. Procs pulsieren ohne Klang.",
+    ["Your game can't show proc pulses."] = "Dein Spiel kann keine Proc-Pulse anzeigen.",
     ["Play at Master volume"] = "Mit Gesamtlautstärke abspielen",
     ["Plays the sound at your Master volume, so you hear it with Sound Effects down or off. Your sound settings don't change."]
         = "Spielt den Klang mit deiner Gesamtlautstärke ab, damit du ihn auch bei leisen oder ausgeschalteten Soundeffekten hörst. Deine Soundeinstellungen bleiben unverändert.",
@@ -177,6 +183,10 @@ ns.LOCALES.deDE = {
         = "hake an, was pulsieren soll, und wähle dann jeweils Kurz oder Lang",
     ["Untick to leave %s out."] = "Haken entfernen, um %s auszulassen.",
     ["Tick to pulse when %s is ready."] = "Anhaken, damit %s pulsiert, sobald bereit.",
+    ["Tick to pulse when %s lands."] = "Anhaken, damit %s beim Auslösen pulsiert.",
+    ["Each style has its own size and time, set under Edit above. Procs pulse without a sound."]
+        = "Größe und Dauer je Stil stellst du oben unter Bearbeiten ein. Procs pulsieren ohne Klang.",
+    ["Procs"] = "Procs",
     [" (experimental)"] = " (experimentell)",
     ["%s pulses %s."] = '%s pulsiert im Stil "%s".',
     ["Once ticked, %s pulses %s."] = 'Angehakt pulsiert %s im Stil "%s".',
@@ -196,6 +206,12 @@ ns.LOCALES.deDE = {
     ["Preview %s"] = "Vorschau: %s",
     ["1 cooldown pulses when it's ready."] = "1 Abklingzeit pulsiert, wenn sie bereit ist.",
     ["%d cooldowns pulse when they're ready."] = "%d Abklingzeiten pulsieren, wenn sie bereit sind.",
+    ["1 proc pulses as it lands."] = "1 Proc pulsiert beim Auslösen.",
+    ["%d procs pulse as they land."] = "%d Procs pulsieren beim Auslösen.",
+    ["1 cooldown pulses when ready, %s"] = "1 Abklingzeit und %s",
+    ["%d cooldowns pulse when ready, %s"] = "%d Abklingzeiten und %s",
+    ["1 proc as it lands."] = "1 Proc pulsieren.",
+    ["%d procs as they land."] = "%d Procs pulsieren.",
     ["Nothing to pulse yet: tick some below."] = "Noch nichts zum Pulsieren: Hake unten welche an.",
     ["Running in %s instead."] = "Läuft stattdessen in %s.",
     ["Off. Tick the box below to start."] = "Aus. Setze unten den Haken, um zu starten.",
@@ -415,6 +431,8 @@ ns.LOCALES.deDE = {
         = "Der Puls geht im Kampf nicht mehr für einen Zauber los, der schon bereit ist, auch für alle, die das nach 1.0.7 noch sahen.",
     ["Shooting a wand no longer pulses ready spells."]
         = "Das Schießen mit einem Zauberstab löst keinen Puls mehr für bereite Zauber aus.",
+    ["Added procs to Cooldown pulse."]
+        = "Procs zum Abklingzeit-Puls hinzugefügt.",
     ["The pulse no longer goes off again and again in a fight for a spell that's already ready."]
         = "Der Puls geht im Kampf nicht mehr immer wieder für einen Zauber los, der schon bereit ist.",
     ["Spell data updated for launch."]

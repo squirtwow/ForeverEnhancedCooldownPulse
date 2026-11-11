@@ -4,6 +4,7 @@
 -- for a profile, 小地图按钮, 战斗中. The pulse is 提示, its two styles 快速 and
 -- 持久; to tick is 勾选 (the box 勾选框, what's ticked 勾选项), the General
 -- page 常规, What's new 更新内容, the tour 导览, a new, empty profile 新的空白配置文件.
+-- A proc is 触发效果, and it 触发.
 -- Grouped by the file that shows each; the same English always gets the
 -- same Chinese, with full-width punctuation.
 local _, ns = ...
@@ -70,6 +71,7 @@ ns.LOCALES.zhCN = {
 
     -- Pulse.lua: an error in chat, and the box that moves the pulse.
     ["the cooldown pulse couldn't follow a cooldown. Please report this: %s"] = "冷却提示无法跟踪某个冷却。请把以下内容报告给我们：%s",
+    ["proc pulses couldn't start. Please report this: %s"] = "触发效果提示无法启动。请把以下内容报告给我们：%s",
     ["Finish the fight first, then move it."] = "请先结束战斗再移动。",
     ["Cooldown pulse"] = "冷却提示",
     ["Done"] = "完成",
@@ -119,6 +121,10 @@ ns.LOCALES.zhCN = {
     ["Trinkets and potions too"] = "也包括饰品和药水",
     ["Your trinkets, potions, healthstones and other items with a use in your bags. Only ones with a cooldown pulse."]
         = "你的饰品、药水、治疗石以及背包里其他可使用的物品。只有带冷却的才会提示。",
+    ["Procs too"] = "也包括触发效果",
+    ["Your class's procs, like Clearcasting or Missile Barrage: a pulse the moment one lands, in a fight too. Procs pulse without a sound."]
+        = "你职业的触发效果，例如节能施法或飞弹速射：一触发就会提示，战斗中也一样。触发效果提示时没有声音。",
+    ["Your game can't show proc pulses."] = "你的游戏无法显示触发效果提示。",
     ["Play at Master volume"] = "以主音量播放",
     ["Plays the sound at your Master volume, so you hear it with Sound Effects down or off. Your sound settings don't change."]
         = "以主音量播放声音，即使音效调低或关闭也能听到。你的声音设置不会改变。",
@@ -126,6 +132,10 @@ ns.LOCALES.zhCN = {
     ["tick the ones you want to pulse, then pick Quick or Long for each"] = "勾选要提示的冷却，再为每个选择「快速」或「持久」",
     ["Untick to leave %s out."] = "取消勾选后不再提示 %s。",
     ["Tick to pulse when %s is ready."] = "勾选后，%s 就绪时会提示。",
+    ["Tick to pulse when %s lands."] = "勾选后，%s 触发时会提示。",
+    ["Each style has its own size and time, set under Edit above. Procs pulse without a sound."]
+        = "每种样式都有自己的大小和时长，在上方「编辑」中设置。触发效果提示时没有声音。",
+    ["Procs"] = "触发效果",
     [" (experimental)"] = "（实验性）",
     ["%s pulses %s."] = "%s 以「%s」样式提示。",
     ["Once ticked, %s pulses %s."] = "勾选后，%s 将以「%s」样式提示。",
@@ -144,6 +154,12 @@ ns.LOCALES.zhCN = {
     ["Preview %s"] = "预览「%s」",
     ["1 cooldown pulses when it's ready."] = "1 个冷却会在就绪时提示。",
     ["%d cooldowns pulse when they're ready."] = "%d 个冷却会在就绪时提示。",
+    ["1 proc pulses as it lands."] = "1 个触发效果会在触发时提示。",
+    ["%d procs pulse as they land."] = "%d 个触发效果会在触发时提示。",
+    ["1 cooldown pulses when ready, %s"] = "1 个冷却会在就绪时提示，%s",
+    ["%d cooldowns pulse when ready, %s"] = "%d 个冷却会在就绪时提示，%s",
+    ["1 proc as it lands."] = "1 个触发效果会在触发时提示。",
+    ["%d procs as they land."] = "%d 个触发效果会在触发时提示。",
     ["Nothing to pulse yet: tick some below."] = "还没有要提示的冷却：在下方勾选一些。",
     ["Running in %s instead."] = "改由 %s 运行。",
     ["Off. Tick the box below to start."] = "已关闭。勾选下方的选项即可开启。",
@@ -340,6 +356,8 @@ ns.LOCALES.zhCN = {
         = "战斗中已就绪的法术不会再触发提示，1.0.7 之后仍遇到此问题的玩家也已修复。",
     ["Shooting a wand no longer pulses ready spells."]
         = "使用魔杖射击时，已就绪的法术不会再触发提示。",
+    ["Added procs to Cooldown pulse."]
+        = "冷却提示新增触发效果。",
     ["The pulse no longer goes off again and again in a fight for a spell that's already ready."]
         = "战斗中已就绪的法术不会再反复触发提示。",
     ["Spell data updated for launch."]

@@ -3,7 +3,8 @@
 -- runs, Link.lua), a live preview of a pulse on a small screen and up close,
 -- where it sits, how it looks and sounds in each of its two styles (Quick
 -- and Long), and every cooldown you have that can pulse, spells and items,
--- to tick, each one Quick or Long. Pulse.lua does the work. Its words are in
+-- to tick, each one Quick or Long, and your class's procs with Procs too.
+-- Pulse.lua does the work. Its words are in
 -- the language showing (Locale.lua), the style, border and sound names
 -- looked up as they show; spell and item names are the game's own.
 local _, ns = ...
@@ -168,7 +169,7 @@ local function BuildOptions(window, page, inner)
     end
     local options = CreateFrame("Frame", nil, page)
     options:SetPoint("TOPLEFT", page.tray, "BOTTOMLEFT", 0, -10)
-    options:SetSize(inner, 134)
+    options:SetSize(inner, 156)
     page.options = options
     local master = T:Check(options, L["Pulse an icon when a cooldown is ready"], function(self)
         ns.Set("pulse", self:GetChecked())
@@ -299,18 +300,26 @@ local function BuildOptions(window, page, inner)
         L["A soft shadow round the icon, in both styles, fading out from its edge."])
     page.items = Tick(L["Trinkets and potions too"], "pulseItems", COLUMN, -94,
         L["Your trinkets, potions, healthstones and other items with a use in your bags. Only ones with a cooldown pulse."])
-    page.volume = Tick(L["Play at Master volume"], "pulseMaster", COLUMN, -116,
+    -- Your class's procs, listed to tick (Pulse.lua's Procs); greyed while
+    -- the game can't show them.
+    page.procs = Tick(L["Procs too"], "pulseProcs", COLUMN, -116, function()
+        if not P:CanProcs() then return L["Your game can't show proc pulses."] end
+        return L["Your class's procs, like Clearcasting or Missile Barrage: a pulse the moment one lands, in a fight too."
+            .. " Procs pulse without a sound."] .. L[" (experimental)"]
+    end)
+    page.volume = Tick(L["Play at Master volume"], "pulseMaster", COLUMN, -138,
         L["Plays the sound at your Master volume, so you hear it with Sound Effects down or off. Your sound settings don't change."])
     -- The right-hand column as one part, for the page's walkthrough: the look
-    -- both styles share, and the two ticks under it.
+    -- both styles share, and the ticks under it.
     local look = CreateFrame("Frame", nil, page)
     look:SetPoint("TOPLEFT", options, "TOPLEFT", COLUMN, -26)
-    look:SetSize(inner - COLUMN, 134 - 26)
+    look:SetSize(inner - COLUMN, 156 - 26)
     page.look = look
 end
 
 -- Which cooldowns pulse: every spell you know with a cooldown of its own,
--- then your items, to tick. Each one is Quick or Long.
+-- your class's procs (with Procs too), then your items, to tick. Each one
+-- is Quick or Long.
 local function BuildList(window, page, inner)
     local P = ns.Pulse
     local heading = T:Heading(page, L["Which cooldowns"])
@@ -354,26 +363,34 @@ local function BuildList(window, page, inner)
         row.check:SetPoint("LEFT", 4, 0)
         -- The whole row clicks its tick, as on the bar pages, up to its switch.
         row.check:SetHitRectInsets(-4, -(listWidth - 20 - SWITCH - 12), -(ROW - 16) / 2, -(ROW - 16) / 2)
-        -- Items listed from your bags aren't seen pulsing in game yet
-        -- (trinkets, healthstones and potions have been).
+        -- Items listed from your bags (trinkets, healthstones and potions
+        -- have been seen pulsing in game), and procs, aren't seen pulsing in
+        -- game yet.
         window:Hint(row.check, function()
             local name = row.name:GetText() or ""
-            return row.check:GetChecked() and L["Untick to leave %s out."]:format(name)
-                or (L["Tick to pulse when %s is ready."]:format(name) .. (row.bags and L[" (experimental)"] or ""))
+            if row.check:GetChecked() then return L["Untick to leave %s out."]:format(name) end
+            if row.proc then return L["Tick to pulse when %s lands."]:format(name) .. L[" (experimental)"] end
+            return L["Tick to pulse when %s is ready."]:format(name) .. (row.bags and L[" (experimental)"] or "")
         end)
-        -- Quick or Long, on the right; its cooldown just before it.
+        -- Quick or Long, on the right; its cooldown just before it. A proc's
+        -- pulse is the game's, so it's told the new style too.
         row.style = T:Segmented(row, Choices(ns.PULSE_STYLE_KEYS, ns.PULSE_STYLE_NAMES), SWITCH, function(key)
             ns.SetPulseStyle(row.key, key)
+            if row.proc then P:Apply() end
             window:Refresh()
         end)
         row.style:SetPoint("RIGHT", -4, 0)
-        -- Says how it pulses now (once ticked, if it isn't), and what this one picks.
+        -- Says how it pulses now (once ticked, if it isn't), and what this one
+        -- picks. A proc's style has no sound.
         for _, button in ipairs(row.style.buttons) do
             window:Hint(button, function()
                 local name, now = row.name:GetText() or "", P:StyleOf(row.key)
                 local said = (row.check:GetChecked() and L["%s pulses %s."] or L["Once ticked, %s pulses %s."])
                     :format(name, StyleName(now))
                 local click = button.key ~= now and L["Click for %s."]:format(StyleName(button.key)) or nil
+                if row.proc then
+                    return ns.Join(said, click, L["Each style has its own size and time, set under Edit above. Procs pulse without a sound."])
+                end
                 return ns.Join(said, click, L["Each style has its own size, time and sound, set under Edit above."])
             end)
         end
@@ -396,8 +413,8 @@ local function BuildList(window, page, inner)
         return row
     end
 
-    -- Headers and rows from the top, for the spells, then the items.
-    function page:FillList(spells, items)
+    -- Headers and rows from the top, for the spells, the procs, then the items.
+    function page:FillList(spells, procs, items)
         local y, n = 0, 0
         local function Header(text)
             n = n + 1
@@ -408,18 +425,18 @@ local function BuildList(window, page, inner)
             row.header:SetText(ns.Upper(text))
             row.header:Show()
             for _, part in ipairs({ row.check, row.icon, row.name, row.long, row.style }) do part:Hide() end
-            row.key, row.item, row.bags = nil, nil, nil
+            row.key, row.item, row.bags, row.proc = nil, nil, nil, nil
             row:Show()
             y = y + HEADER_ROW
         end
-        local function Entry(entry, long, item)
+        local function Entry(entry, long, item, proc)
             n = n + 1
             local row = Row(n)
             row:SetHeight(ROW)
             row:ClearAllPoints()
             row:SetPoint("TOPLEFT", 0, -y)
             row.header:Hide()
-            row.key, row.item = entry.key, item
+            row.key, row.item, row.proc = entry.key, item, proc
             row.bags = item and entry.key:find("^item:") ~= nil or nil
             row.icon:SetTexture(entry.icon or 134400)
             row.name:SetText(entry.name)
@@ -432,6 +449,9 @@ local function BuildList(window, page, inner)
         end
         if #spells > 0 then Header(L["Spells"]) end
         for _, entry in ipairs(spells) do Entry(entry, Long(entry.base), false) end
+        -- A proc has no cooldown to show: it pulses as it lands.
+        if #procs > 0 then Header(L["Procs"]) end
+        for _, entry in ipairs(procs) do Entry(entry, "", false, true) end
         if #items > 0 then Header(L["Items"]) end
         -- An item ticked that you carry none of now says so; it pulses again once you do.
         for _, entry in ipairs(items) do
@@ -481,25 +501,41 @@ function ns.BuildPulsePage(window, page, width)
         self.border:SetSelected(ns.Get("pulseBorder"))
         self.shadow:SetChecked(ns.Get("pulseShadow"))
         self.items:SetChecked(ns.Get("pulseItems"))
+        self.procs:SetChecked(ns.Get("pulseProcs"))
+        self.procs:SetUsable(P:CanProcs())
         self.volume:SetChecked(ns.Get("pulseMaster"))
         self.previewButton:SetLabel(L["Preview %s"]:format(Editing()))
 
         local spells, items = P:Spells(), ns.Get("pulseItems") and P:Items() or {}
-        local count = 0
+        local procs = ns.Get("pulseProcs") and P:CanProcs() and P:Procs() or {}
+        local count, ticked = 0, 0
         for _, list in ipairs({ spells, items }) do
             for _, entry in ipairs(list) do
                 if entry.on then count = count + 1 end
             end
         end
+        for _, entry in ipairs(procs) do
+            if entry.on then ticked = ticked + 1 end
+        end
         local said = count == 1 and L["1 cooldown pulses when it's ready."] or L["%d cooldowns pulse when they're ready."]:format(count)
-        if count == 0 then said = L["Nothing to pulse yet: tick some below."] end
+        -- With procs ticked too, both in one line, short enough to clear Preview.
+        if ticked > 0 then
+            if count == 0 then
+                said = ticked == 1 and L["1 proc pulses as it lands."] or L["%d procs pulse as they land."]:format(ticked)
+            else
+                local landing = ticked == 1 and L["1 proc as it lands."] or L["%d procs as they land."]:format(ticked)
+                said = count == 1 and L["1 cooldown pulses when ready, %s"]:format(landing)
+                    or L["%d cooldowns pulse when ready, %s"]:format(count, landing)
+            end
+        end
+        if count == 0 and ticked == 0 then said = L["Nothing to pulse yet: tick some below."] end
         if elsewhere then
             said = L["Running in %s instead."]:format(elsewhere)
         elseif not on then
             said = L["Off. Tick the box below to start."]
         end
         self.status:SetText(said)
-        self:FillList(spells, items)
+        self:FillList(spells, procs, items)
 
         -- Where it shows, in words and on the small screen, to scale, as big
         -- as the style picked under Edit.

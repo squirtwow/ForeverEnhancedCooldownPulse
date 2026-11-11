@@ -11,7 +11,8 @@
 -- a new, empty profile um perfil novo e vazio. Spells and items in the notes
 -- by the client's own names (Selo de Comando, Choque Sagrado, Sangue Frio,
 -- Avivar, Chá de Cardo); Read Leyline stays. Grouped by the file that shows
--- each; the same English always gets the same Portuguese.
+-- each; the same English always gets the same Portuguese. A proc is um proc
+-- (os procs), as players say; it surge (gender-free, whatever its name).
 local _, ns = ...
 
 ns.LOCALES.ptBR = {
@@ -78,6 +79,8 @@ ns.LOCALES.ptBR = {
     -- Pulse.lua: an error in chat, and the box that moves the pulse.
     ["the cooldown pulse couldn't follow a cooldown. Please report this: %s"]
         = "o pulso de recarga não conseguiu acompanhar uma recarga. Por favor, relate isto: %s",
+    ["proc pulses couldn't start. Please report this: %s"]
+        = "os pulsos dos procs não conseguiram iniciar. Por favor, relate isto: %s",
     ["Finish the fight first, then move it."] = "Termine o combate primeiro e depois mova.",
     ["Cooldown pulse"] = "Pulso de recarga",
     ["Done"] = "Concluído",
@@ -130,6 +133,10 @@ ns.LOCALES.ptBR = {
     ["Trinkets and potions too"] = "Berloques e poções também",
     ["Your trinkets, potions, healthstones and other items with a use in your bags. Only ones with a cooldown pulse."]
         = "Seus berloques, poções, pedras de vida e outros itens usáveis nas bolsas. Só pulsam os que têm tempo de recarga.",
+    ["Procs too"] = "Procs também",
+    ["Your class's procs, like Clearcasting or Missile Barrage: a pulse the moment one lands, in a fight too. Procs pulse without a sound."]
+        = "Os procs da sua classe, como Clarividência ou Barragem de Mísseis: um pulso assim que um deles surge, também em combate. Procs pulsam sem som.",
+    ["Your game can't show proc pulses."] = "Seu jogo não consegue mostrar pulsos de procs.",
     ["Play at Master volume"] = "Tocar no volume geral",
     ["Plays the sound at your Master volume, so you hear it with Sound Effects down or off. Your sound settings don't change."]
         = "Toca o som no volume geral, para você ouvir mesmo com os efeitos sonoros baixos ou desligados. Suas configurações de som não mudam.",
@@ -138,6 +145,10 @@ ns.LOCALES.ptBR = {
         = "marque as que devem pulsar e escolha Rápido ou Longo para cada uma",
     ["Untick to leave %s out."] = "Desmarque para deixar %s de fora.",
     ["Tick to pulse when %s is ready."] = "Marque para pulsar quando a recarga de %s terminar.",
+    ["Tick to pulse when %s lands."] = "Marque para pulsar assim que %s surgir.",
+    ["Each style has its own size and time, set under Edit above. Procs pulse without a sound."]
+        = "Cada estilo tem tamanho e duração próprios, ajustados em Editar, acima. Procs pulsam sem som.",
+    ["Procs"] = "Procs",
     [" (experimental)"] = " (experimental)",
     ["%s pulses %s."] = "%s: pulso %s.",
     ["Once ticked, %s pulses %s."] = "Se você marcar %s, o pulso será %s.",
@@ -157,6 +168,12 @@ ns.LOCALES.ptBR = {
     ["Preview %s"] = "Prévia: %s",
     ["1 cooldown pulses when it's ready."] = "1 recarga pulsa ao terminar.",
     ["%d cooldowns pulse when they're ready."] = "%d recargas pulsam ao terminar.",
+    ["1 proc pulses as it lands."] = "1 proc pulsa quando surge.",
+    ["%d procs pulse as they land."] = "%d procs pulsam quando surgem.",
+    ["1 cooldown pulses when ready, %s"] = "1 recarga e %s",
+    ["%d cooldowns pulse when ready, %s"] = "%d recargas e %s",
+    ["1 proc as it lands."] = "1 proc pulsam.",
+    ["%d procs as they land."] = "%d procs pulsam.",
     ["Nothing to pulse yet: tick some below."] = "Nada para pulsar ainda: marque algumas abaixo.",
     ["Running in %s instead."] = "Ativo no %s, não aqui.",
     ["Off. Tick the box below to start."] = "Desligado. Marque a caixa abaixo para começar.",
@@ -376,6 +393,8 @@ ns.LOCALES.ptBR = {
         = "O pulso não dispara mais em combate para um feitiço que já está pronto, para quem ainda via isso após a 1.0.7.",
     ["Shooting a wand no longer pulses ready spells."]
         = "Atirar com uma varinha não dispara mais o pulso de feitiços prontos.",
+    ["Added procs to Cooldown pulse."]
+        = "Procs adicionados ao pulso de recarga.",
     ["The pulse no longer goes off again and again in a fight for a spell that's already ready."]
         = "O pulso não dispara mais sem parar em combate para um feitiço que já está pronto.",
     ["Spell data updated for launch."]

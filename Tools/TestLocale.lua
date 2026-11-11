@@ -27,7 +27,7 @@ local LATIN = { deDE = true, frFR = true, esES = true, ptBR = true }
 -- same lists): names in every language, and in Latin letters SAME too.
 local NAMES = { "Discord", "CurseForge", "GitHub", "EraUI", "Forever Enhanced Cooldown Manager", "OK" }
 local SAME = { "%gs", "%.1fs", "%g min", "Item %d", "Version %s", "General", "Long", "Orange", "Gold", "Fanfare", "Synth",
-    " (experimental)" }
+    " (experimental)", "Procs" }
 local function Allowed(lang, english)
     for _, word in ipairs(NAMES) do if word == english then return true end end
     if not LATIN[lang] then return false end
@@ -42,7 +42,7 @@ end
 local KEEP = { "Forever Enhanced Cooldown Pulse", "Forever Enhanced Cooldown Manager", "WoW Forever", "Forever", "EraUI",
     "Squirt", "Discord", "CurseForge", "GitHub", "Install", "Ctrl+C", "Esc", "English", "Deutsch", "Français", "Español",
     "Português (Brasil)", "Read Leyline", "Zriel (Druid) - Zephras", "Walk on Air", "Barkskin", "Overpower", "Bash", "Lucky Charm",
-    "Hearthstone", "dev", "Raids" }
+    "Hearthstone", "Clearcasting", "Nature's Grace", "Eclipse", "dev", "Raids" }
 table.sort(KEEP, function(a, b) return #a > #b end)
 
 -- A text without its codes, links, names, commands and keys (in capitals
@@ -195,9 +195,27 @@ local function Everywhere(ns, label)
         if english then room = math.max(room, H.Wide(english, font)) end
         if H.Wide(text, font) > room then tight[#tight + 1] = (what and what .. " " or "") .. tostring(text) end
     end
-    -- Every page, in its states.
+    -- Every page, in its states: the procs listed too, the druid's
+    -- Clearcasting ticked, then alone, then with a cooldown.
+    ns.Set("pulseProcs", true)
     w:Select("pulse")
-    Look(label .. " pulse page")
+    Look(label .. " pulse page, procs listed")
+    ns.SetPulsePick("proc:16870", true)
+    P:Apply()
+    w:Refresh()
+    Look(label .. " pulse page, a proc ticked")
+    local procRow
+    for _, row in ipairs(w.pages.pulse.rows) do
+        if row.proc and S[row].shown then procRow = procRow or row end
+    end
+    H.True(procRow ~= nil and S[w.pages.pulse.status].text == L["1 proc pulses as it lands."], label .. ": a proc row, and the title row says so")
+    ns.SetPulsePick("Barkskin", true)
+    w:Refresh()
+    Look(label .. " pulse page, a cooldown and a proc ticked")
+    H.True(S[w.pages.pulse.status].text == L["1 cooldown pulses when ready, %s"]:format(L["1 proc as it lands."]),
+        label .. ": the title row counts both")
+    ns.SetPulsePick("Barkskin", nil)
+    w:Refresh()
     w.pages.pulse.edit.buttons[2]:Click()
     Look(label .. " pulse page, Long")
     w.pages.pulse.edit.buttons[1]:Click()
@@ -435,11 +453,24 @@ local function Everywhere(ns, label)
     local longest = 0
     for _, said in ipairs({ L["Off. Tick the box below to start."], L["Nothing to pulse yet: tick some below."],
         L["1 cooldown pulses when it's ready."], L["%d cooldowns pulse when they're ready."]:format(12),
-        L["Running in %s instead."]:format("Forever Enhanced Cooldown Manager") }) do
+        L["Running in %s instead."]:format("Forever Enhanced Cooldown Manager"), L["1 proc pulses as it lands."],
+        L["%d procs pulse as they land."]:format(12), L["1 cooldown pulses when ready, %s"]:format(L["%d procs as they land."]:format(12)),
+        L["%d cooldowns pulse when ready, %s"]:format(12, L["1 proc as it lands."]),
+        L["%d cooldowns pulse when ready, %s"]:format(12, L["%d procs as they land."]:format(12)) }) do
+        if from + H.Wide(said, S[page.status].template) + 8 > 638 - 16 - S[page.previewButton].width then
+            tight[#tight + 1] = "the title row: " .. said
+        end
         longest = math.max(longest, H.Wide(said, S[page.status].template))
     end
     if from + longest + 8 > 638 - 16 - S[page.previewButton].width then tight[#tight + 1] = "the title row" end
+    -- The procs' tick and header: the tick's label clear of the column's
+    -- edge, the header in its row.
+    Fits(S[page.procs.text].text, "GameFontHighlight", S[page.options].width - 312 - 18, "the procs' tick:")
+    Fits(ns.Upper(L["Procs"]), "GameFontHighlightSmall", 200, "the procs' header:")
     Equal(table.concat(tight, ", "), "", label .. ": every label, value and name inside its own room")
+    ns.SetPulsePick("proc:16870", nil)
+    ns.Set("pulseProcs", false)
+    P:Apply()
     w:Hide()
 end
 

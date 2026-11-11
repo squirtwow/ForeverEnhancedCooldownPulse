@@ -65,6 +65,7 @@ ns.DEFAULTS = {
     pulseBorder = "thin", -- a dark edge round it: none, thin or thick
     pulseShadow = true, -- and a soft shadow
     pulseItems = true, -- your trinkets, potions and items with a use are listed too
+    pulseProcs = false, -- your class's procs are listed too, each pulsing as it lands (experimental)
     pulseX = 0, -- where it sits: from the middle of the screen
     pulseY = 0,
     accent = "purple", -- the /fecp window's accent colour
@@ -471,8 +472,9 @@ local function PulseList(field)
     return store[field]
 end
 
--- The spells (by name) and items (by key) you ticked -> true. Every spell you
--- know with a cooldown is listed, and your items; none pulses until it's
+-- The spells (by name), items (by key) and procs ("proc:" and their buff's
+-- ID, the same in every language, Pulse.lua) you ticked -> true. Every spell
+-- you know with a cooldown is listed, and your items; none pulses until it's
 -- ticked (new ones show as you learn them, and you choose).
 function ns.PulsePicks()
     return PulseList("pulsePick")
@@ -483,7 +485,7 @@ function ns.SetPulsePick(key, pick)
     ns.PulsePicks()[key] = pick and true or nil
 end
 
--- The spells and items switched to the Long style, by key -> "long".
+-- The spells, items and procs switched to the Long style, by key -> "long".
 -- Everything else is Quick.
 function ns.PulseStyles()
     return PulseList("pulseStyle")

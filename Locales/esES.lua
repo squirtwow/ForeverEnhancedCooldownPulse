@@ -11,7 +11,8 @@
 -- Rápido and Largo, written so wherever they show. To tick is marcar (the
 -- box a casilla), the General page General, What's new Novedades, the tour
 -- el tour, Preview Probar, Done Listo, See-through Translúcido. The same
--- English always gets the same Spanish.
+-- English always gets the same Spanish. A proc is un proc (los procs), as
+-- players say; it se activa.
 --
 -- Room, in the game's units (about 7.5 a letter, 6.5 in the small font):
 -- the page names 130; the labels before a slider or choice 88; Preview %s
@@ -92,6 +93,8 @@ ns.LOCALES.esES = {
     -- Pulse.lua: an error in chat, and the box that moves the pulse.
     ["the cooldown pulse couldn't follow a cooldown. Please report this: %s"]
         = "el aviso de recarga no pudo seguir un tiempo de reutilización. Por favor, envíanos esto: %s",
+    ["proc pulses couldn't start. Please report this: %s"]
+        = "los avisos de procs no pudieron iniciarse. Por favor, envíanos esto: %s",
     ["Finish the fight first, then move it."] = "Primero termina el combate y luego muévelo.",
     ["Cooldown pulse"] = "Aviso de recarga",
     ["Done"] = "Listo",
@@ -145,6 +148,10 @@ ns.LOCALES.esES = {
     ["Trinkets and potions too"] = "También abalorios y pociones",
     ["Your trinkets, potions, healthstones and other items with a use in your bags. Only ones with a cooldown pulse."]
         = "Tus abalorios, pociones, piedras de salud y otros objetos usables de tus bolsas. Solo avisan los que tienen tiempo de reutilización.",
+    ["Procs too"] = "También procs",
+    ["Your class's procs, like Clearcasting or Missile Barrage: a pulse the moment one lands, in a fight too. Procs pulse without a sound."]
+        = "Los procs de tu clase, como Libre lanzamiento o Tromba de misiles: un aviso en cuanto se activa uno, también en combate. Los procs avisan sin sonido.",
+    ["Your game can't show proc pulses."] = "Tu juego no puede mostrar avisos de procs.",
     ["Play at Master volume"] = "Sonar con el volumen general",
     ["Plays the sound at your Master volume, so you hear it with Sound Effects down or off. Your sound settings don't change."]
         = "Reproduce el sonido con tu volumen general, para oírlo aunque los efectos de sonido estén bajos o desactivados. Tus opciones de sonido no cambian.",
@@ -153,6 +160,10 @@ ns.LOCALES.esES = {
         = "marca los que quieras que avisen y elige Rápido o Largo para cada uno",
     ["Untick to leave %s out."] = "Desmarca para dejar fuera %s.",
     ["Tick to pulse when %s is ready."] = "Marca para avisar cuando %s esté disponible.",
+    ["Tick to pulse when %s lands."] = "Marca para avisar cuando se active %s.",
+    ["Each style has its own size and time, set under Edit above. Procs pulse without a sound."]
+        = "Tamaño y duración de cada estilo: en Editar, arriba. Los procs avisan sin sonido.",
+    ["Procs"] = "Procs",
     [" (experimental)"] = " (experimental)",
     ["%s pulses %s."] = "%s usa el aviso %s.",
     ["Once ticked, %s pulses %s."] = "Al marcar la casilla, %s usará el aviso %s.",
@@ -172,6 +183,12 @@ ns.LOCALES.esES = {
     ["Preview %s"] = "Probar %s",
     ["1 cooldown pulses when it's ready."] = "1 tiempo de reutilización avisa al terminar.",
     ["%d cooldowns pulse when they're ready."] = "%d tiempos de reutilización avisan al terminar.",
+    ["1 proc pulses as it lands."] = "1 proc avisa al activarse.",
+    ["%d procs pulse as they land."] = "%d procs avisan al activarse.",
+    ["1 cooldown pulses when ready, %s"] = "1 tiempo de reutilización y %s",
+    ["%d cooldowns pulse when ready, %s"] = "%d tiempos de reutilización y %s",
+    ["1 proc as it lands."] = "1 proc avisan.",
+    ["%d procs as they land."] = "%d procs avisan.",
     ["Nothing to pulse yet: tick some below."] = "Aún no hay avisos: marca alguno abajo.",
     ["Running in %s instead."] = "Se usa el de %s.",
     ["Off. Tick the box below to start."] = "Desactivado. Marca la casilla de abajo para empezar.",
@@ -392,6 +409,8 @@ ns.LOCALES.esES = {
         = "El aviso ya no salta en combate por un hechizo que ya está listo, para quienes aún lo veían tras la 1.0.7.",
     ["Shooting a wand no longer pulses ready spells."]
         = "Disparar con una varita ya no hace saltar el aviso de los hechizos listos.",
+    ["Added procs to Cooldown pulse."]
+        = "Añadidos los procs al aviso de reutilización.",
     ["The pulse no longer goes off again and again in a fight for a spell that's already ready."]
         = "El aviso ya no salta una y otra vez en combate por un hechizo que ya está listo.",
     ["Spell data updated for launch."]

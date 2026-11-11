@@ -166,8 +166,75 @@ test('the pulse hands cooldowns on, never reads one, and takes no mouse but to m
   // The one frame that takes the mouse: the box that moves it.
   assert.equal(count(pulse, /EnableMouse\(true\)/g), 1);
   assert.match(pulse, /mover = CreateFrame\("Frame", "FECPPulseMover", UIParent, "BackdropTemplate"\)[\s\S]*?mover:EnableMouse\(true\)/);
-  assert.equal(count(pulse, /EnableMouse\(false\)/g), 4, 'the pulse, its icon, the watchers and their frame');
+  assert.equal(count(pulse, /EnableMouse\(false\)/g), 7,
+    "the pulse, its icon (the proc pulses' too), the watchers and their frame, and the procs' container, frames and the game's icons");
+  assert.match(pulse, /local function ProcLook\(slot\)\r?\n\s+return function\(button\)\r?\n\s+button:EnableMouse\(false\)/,
+    "a proc's icon, in the middle of your screen while the proc is up, never takes the mouse");
   assert.doesNotMatch(noComments(await read('Link.lua')), /EnableMouse\(true\)/, 'the link\'s watcher takes none either');
+});
+
+// The proc pulses' animation is the game's to play once handed over, so
+// nothing of the addon's may run as it plays: no script is set or hooked in
+// the Procs section but on the hush's own frame (Watch: a frame of the
+// addon's, hearing events and the interface coming back), and the only
+// alpha set there is each texture's 0 before the hand-off and the
+// container's see-through, through pcall (Fade). Blizzard's aura container
+// runs only a look the addon guards (Add and Guard): a slot is added through
+// Add alone, its look through Guard, and the container never runs the
+// addon's code as it updates. Tools/TestPulse.lua checks the same on the
+// mock game.
+test('the proc pulses hand the game an animation with no scripts, and never set its alpha after', async () => {
+  const pulse = noComments(await read('Pulse.lua'));
+  const start = pulse.indexOf('P.PROCS = {'), end = pulse.indexOf('function P:ProcReport');
+  assert.ok(start > 0 && end > start, 'the Procs section found');
+  const procs = pulse.slice(start, end);
+  assert.deepEqual(procs.match(/\w*:(SetScript|HookScript)\([^,]*/g), ['watch:SetScript("OnEvent"', 'watch:SetScript("OnShow"'],
+    "no script set or hooked but the hush's own frame's");
+  assert.match(procs, /local watch = CreateFrame\("Frame", nil, UIParent\)/, "the hush's frame is the addon's own");
+  assert.deepEqual(procs.match(/\w*:SetAlpha\w*\([^)]*\)/g), ['texture:SetAlpha(0)'], "only each texture's 0, before the hand-off");
+  assert.deepEqual(procs.match(/(?:pcall\()?[\w.:]*SetAlpha\b[^)]*\)/g), ['texture:SetAlpha(0)', 'pcall(procs.container.SetAlpha, procs.container, alpha)'],
+    "and the container's see-through, through pcall");
+  const look = procs.slice(procs.indexOf('local function ProcLook'), procs.indexOf('local function Container'));
+  assert.ok(look.indexOf('texture:SetAlpha(0)') < look.indexOf('AddAuraShownAnimation'), 'set before the hand-off');
+  assert.equal(count(procs, /pcall\(button\.AddAuraShownAnimation, button, group\)/g), 1, 'handed once, through pcall');
+  // Never a key written on the game's icon or container.
+  assert.deepEqual(procs.match(/\b(button|container)\.\w+\s*=[^=]/g), null, "nothing written on the game's icon or container");
+  // Its container: Blizzard's, made in this file alone; its slot added only through Add, its look through Guard.
+  const files = await addonFiles(/\.lua$/i);
+  const containers = [];
+  for (const name of files) if (/CustomAuraContainerTemplate/.test(noComments(await read(name)))) containers.push(name);
+  assert.deepEqual(containers, ['Pulse.lua'], 'the only container');
+  assert.deepEqual(pulse.match(/:AddAura(Slot|Group)\(/g), null, 'no slot or group added but through Add');
+  assert.equal(count(pulse, /Add\(procs\.container, "AddAuraSlot", slot\.name, "HELPFUL", \{ initializeFrame = Guard\(ProcLook\(slot\)\) \}\)/g), 1,
+    'one slot per proc, for your buffs, its look guarded');
+  assert.deepEqual(pulse.match(/initializeFrame\s*=\s*[^,}]+/g), ['initializeFrame = Guard(ProcLook(slot)) '], 'the one look');
+  assert.match(pulse, /local function Add\(container, method, \.\.\.\)\r?\n\s+adding = true\r?\n\s+local ok, result = pcall\(container\[method\], container, \.\.\.\)\r?\n\s+adding = false\r?\n/,
+    'the look allowed only while the addon adds its slot, and never left on by an error');
+  assert.match(pulse, /local function Guard\(look\)\r?\n\s+return function\(button\)\r?\n\s+if adding then look\(button\) end/);
+  // Never in a fight: the container is only told anything from Assign, which waits for the fight to end.
+  assert.match(pulse, /function P:ApplyProcs\(\)\r?\n\s+if InCombatLockdown\(\) then\r?\n\s+procs\.pending = true\r?\n\s+return\r?\n\s+end/);
+  assert.match(pulse, /elseif event == "PLAYER_REGEN_ENABLED" then\r?\n\s+(--[^\n]*\r?\n\s+)?if procs\.pending then P:ApplyProcs\(\) end/);
+});
+
+// P.PROCS's block, from "P.PROCS = {" to its closing brace: each line
+// trimmed, comments already gone.
+function procsBlock(text) {
+  const lines = text.split(/\r?\n/);
+  const start = lines.findIndex(line => line.startsWith('P.PROCS = {'));
+  const end = lines.findIndex((line, i) => i > start && line.trimEnd() === '}');
+  return start >= 0 && end > start ? lines.slice(start, end + 1).map(line => line.trim()).filter(Boolean) : null;
+}
+
+// The two addons pulse the same procs (pulse parity): the same list as
+// Forever Enhanced Cooldown Manager's, line for line, when it's beside this
+// one (its own rules check the same of this one).
+test('the proc list is the same as Forever Enhanced Cooldown Manager\'s, when it\'s there', async () => {
+  const { existsSync } = await import('node:fs');
+  const theirs = new URL('../../ForeverEnhancedCooldownManager/Pulse.lua', import.meta.url);
+  const ours = procsBlock(noComments(await read('Pulse.lua')));
+  assert.ok(ours && ours.length > 9, 'ours found, a line for each class');
+  if (!existsSync(theirs)) return console.log('Forever Enhanced Cooldown Manager is not beside this addon');
+  assert.deepEqual(ours, procsBlock(noComments(await readFile(theirs, 'utf8'))), 'line for line');
 });
 
 // Answers the game may keep secret in a fight are never compared, tested or
@@ -475,7 +542,7 @@ test('untested options are marked the quiet way, never "Needs testing"', async (
     }
   }
   assert.deepEqual(found, [], 'the old wording, or a loud one');
-  assert.equal(quiet, 1, "the pulse page's bag items say it the quiet way");
+  assert.equal(quiet, 3, "the pulse page's bag items, its Procs too tick and each proc's row say it the quiet way");
 });
 
 // Other addons are never named, in the addon, its text or its tests. Their

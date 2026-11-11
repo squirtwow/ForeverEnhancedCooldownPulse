@@ -168,12 +168,12 @@ const CJK = /[　-〿一-鿿＀-￯]/;
 // The words that can rightly be the same as the English: names, in every
 // language (NAMES); and in the languages written in Latin letters, words
 // some of them share with English too (Orange, General, Version %s, Long,
-// Fanfare, %g min and the seconds, " (experimental)"). Russian and Chinese
-// write those their own way. The same lists as Tools/TestLocale.lua's,
-// checked below.
+// Fanfare, %g min and the seconds, " (experimental)", Procs, as players
+// say it there). Russian and Chinese write those their own way. The same
+// lists as Tools/TestLocale.lua's, checked below.
 const NAMES = ['Discord', 'CurseForge', 'GitHub', 'EraUI', 'Forever Enhanced Cooldown Manager', 'OK'];
 const SAME = [...NAMES, '%gs', '%.1fs', '%g min', 'Item %d', 'Version %s', 'General', 'Long', 'Orange', 'Gold', 'Fanfare', 'Synth',
-  ' (experimental)'];
+  ' (experimental)', 'Procs'];
 const LATIN = ['deDE', 'frFR', 'esES', 'ptBR'];
 const allowed = code => LATIN.includes(code) ? SAME : NAMES;
 
