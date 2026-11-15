@@ -305,8 +305,10 @@ local function BuildOptions(window, page, inner)
     page.procs = Tick(L["Procs too"], "pulseProcs", COLUMN, -116, function()
         if not P:CanProcs() then return L["Your game can't show proc pulses."] end
         return L["Your class's procs, like Clearcasting or Missile Barrage: a pulse the moment one lands, in a fight too."
-            .. " Procs pulse without a sound."] .. L[" (experimental)"]
+            .. " Procs pulse without a sound."]
     end)
+    page.resets = Tick(L["Early resets too"], "pulseResets", 0, -116,
+        L["A pulse when a talent brings a cooldown back early, like a reset after a parry or dodge."])
     page.volume = Tick(L["Play at Master volume"], "pulseMaster", COLUMN, -138,
         L["Plays the sound at your Master volume, so you hear it with Sound Effects down or off. Your sound settings don't change."])
     -- The right-hand column as one part, for the page's walkthrough: the look
@@ -363,14 +365,11 @@ local function BuildList(window, page, inner)
         row.check:SetPoint("LEFT", 4, 0)
         -- The whole row clicks its tick, as on the bar pages, up to its switch.
         row.check:SetHitRectInsets(-4, -(listWidth - 20 - SWITCH - 12), -(ROW - 16) / 2, -(ROW - 16) / 2)
-        -- Items listed from your bags (trinkets, healthstones and potions
-        -- have been seen pulsing in game), and procs, aren't seen pulsing in
-        -- game yet.
         window:Hint(row.check, function()
             local name = row.name:GetText() or ""
             if row.check:GetChecked() then return L["Untick to leave %s out."]:format(name) end
-            if row.proc then return L["Tick to pulse when %s lands."]:format(name) .. L[" (experimental)"] end
-            return L["Tick to pulse when %s is ready."]:format(name) .. (row.bags and L[" (experimental)"] or "")
+            if row.proc then return L["Tick to pulse when %s lands."]:format(name) end
+            return L["Tick to pulse when %s is ready."]:format(name)
         end)
         -- Quick or Long, on the right; its cooldown just before it. A proc's
         -- pulse is the game's, so it's told the new style too.
@@ -425,7 +424,7 @@ local function BuildList(window, page, inner)
             row.header:SetText(ns.Upper(text))
             row.header:Show()
             for _, part in ipairs({ row.check, row.icon, row.name, row.long, row.style }) do part:Hide() end
-            row.key, row.item, row.bags, row.proc = nil, nil, nil, nil
+            row.key, row.item, row.proc = nil, nil, nil
             row:Show()
             y = y + HEADER_ROW
         end
@@ -437,7 +436,6 @@ local function BuildList(window, page, inner)
             row:SetPoint("TOPLEFT", 0, -y)
             row.header:Hide()
             row.key, row.item, row.proc = entry.key, item, proc
-            row.bags = item and entry.key:find("^item:") ~= nil or nil
             row.icon:SetTexture(entry.icon or 134400)
             row.name:SetText(entry.name)
             row.long:SetText(long)
@@ -503,6 +501,7 @@ function ns.BuildPulsePage(window, page, width)
         self.items:SetChecked(ns.Get("pulseItems"))
         self.procs:SetChecked(ns.Get("pulseProcs"))
         self.procs:SetUsable(P:CanProcs())
+        self.resets:SetChecked(ns.Get("pulseResets"))
         self.volume:SetChecked(ns.Get("pulseMaster"))
         self.previewButton:SetLabel(L["Preview %s"]:format(Editing()))
 

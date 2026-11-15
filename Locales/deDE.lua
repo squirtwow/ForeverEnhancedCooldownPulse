@@ -44,8 +44,7 @@
 -- all characters and unused say who uses a profile. %s on %s is "EraUI
 -- on CurseForge", a link box's title. Made with %s by %s is a heart, then
 -- Squirt. Switch to %s. and You're already using %s. take a profile's
--- name or a language's own name (Deutsch). " (experimental)" keeps its
--- space, added to a hover note. %d of %d is the tour's "2 of 5".
+-- name or a language's own name (Deutsch). %d of %d is the tour's "2 of 5".
 -- Profile names can be up to %d characters: the game counts bytes
 -- (48), and a letter with an accent, or in Cyrillic, takes two. The
 -- cooldown pulse couldn't follow... starts small: it follows the
@@ -175,6 +174,9 @@ ns.LOCALES.deDE = {
     ["Your class's procs, like Clearcasting or Missile Barrage: a pulse the moment one lands, in a fight too. Procs pulse without a sound."]
         = "Die Procs deiner Klasse, etwa Freizaubern oder Geschosssalve: ein Puls, sobald einer auslöst, auch im Kampf. Procs pulsieren ohne Klang.",
     ["Your game can't show proc pulses."] = "Dein Spiel kann keine Proc-Pulse anzeigen.",
+    ["Early resets too"] = "Auch frühe Resets",
+    ["A pulse when a talent brings a cooldown back early, like a reset after a parry or dodge."]
+        = "Ein Puls, wenn ein Talent eine Abklingzeit früher zurückbringt, etwa ein Reset nach Parieren oder Ausweichen.",
     ["Play at Master volume"] = "Mit Gesamtlautstärke abspielen",
     ["Plays the sound at your Master volume, so you hear it with Sound Effects down or off. Your sound settings don't change."]
         = "Spielt den Klang mit deiner Gesamtlautstärke ab, damit du ihn auch bei leisen oder ausgeschalteten Soundeffekten hörst. Deine Soundeinstellungen bleiben unverändert.",
@@ -187,7 +189,6 @@ ns.LOCALES.deDE = {
     ["Each style has its own size and time, set under Edit above. Procs pulse without a sound."]
         = "Größe und Dauer je Stil stellst du oben unter Bearbeiten ein. Procs pulsieren ohne Klang.",
     ["Procs"] = "Procs",
-    [" (experimental)"] = " (experimentell)",
     ["%s pulses %s."] = '%s pulsiert im Stil "%s".',
     ["Once ticked, %s pulses %s."] = 'Angehakt pulsiert %s im Stil "%s".',
     ["Click for %s."] = 'Klicke, um zum Stil "%s" zu wechseln.',
@@ -433,6 +434,10 @@ ns.LOCALES.deDE = {
         = "Das Schießen mit einem Zauberstab löst keinen Puls mehr für bereite Zauber aus.",
     ["Added procs to Cooldown pulse."]
         = "Procs zum Abklingzeit-Puls hinzugefügt.",
+    ["Early resets can pulse, like Improved Stormstrike after a parry."]
+        = "Frühe Resets können pulsieren, etwa Improved Stormstrike nach einem Parieren.",
+    ["Options no longer say experimental."]
+        = "Optionen sind nicht mehr als experimentell markiert.",
     ["The pulse no longer goes off again and again in a fight for a spell that's already ready."]
         = "Der Puls geht im Kampf nicht mehr immer wieder für einen Zauber los, der schon bereit ist.",
     ["Spell data updated for launch."]

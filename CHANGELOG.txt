@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.11
+
+### Added
+- Early resets can pulse, like Improved Stormstrike after a parry.
+
+### Changed
+- Options no longer say experimental.
+- Spell data updated for Forever's latest patch.
+
 ## 1.0.10
 
 ### Added

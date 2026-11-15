@@ -327,6 +327,34 @@ do
     H.Done(bash)
     Equal(P:Showing(), "Bash", "done a minute after it showed: it pulses")
     Finish(P)
+    -- Early resets too: a cooldown counting that a talent brings back early
+    -- (the game hands a zero duration and the watcher stops) pulses then.
+    -- Off by default; never for one only just started, nor one sitting ready.
+    Equal(tostring(ns.Get("pulseResets")), "false", "early resets: off by default")
+    local function Reset(after)
+        H.zero[5211] = nil
+        bash:Hide()
+        bash:Show()
+        H.clock = H.clock + after
+        H.zero[5211] = true
+        Fire("SPELL_UPDATE_COOLDOWN")
+        H.Tick(ns)
+        return tostring(P:Showing()) .. " " .. tostring(bash:IsShown())
+    end
+    H.clock = H.clock + 5
+    Equal(Reset(8), "nil false", "a cooldown reset early, with Early resets off: stopped, no pulse")
+    ns.Set("pulseResets", true)
+    H.clock = H.clock + 5
+    Equal(Reset(8), "Bash false", "with it on, in a fight: it pulses as it comes back")
+    Finish(P)
+    H.clock = H.clock + 5
+    Equal(Reset(1), "nil false", "one only a global cooldown old when it stops: no pulse")
+    H.clock = H.clock + 5
+    Fire("SPELL_UPDATE_COOLDOWN")
+    H.Tick(ns)
+    Equal(tostring(P:Showing()), "nil", "one sitting ready, asked again: no pulse")
+    ns.Set("pulseResets", false)
+    H.zero = {}
     -- With the interface hidden (Alt+Z), none.
     H.clock = H.clock + 5
     S[UIParent].shown = false
@@ -590,23 +618,23 @@ do
     Equal(Rows(page):match("ITEMS.*"), "ITEMS | [x] Trinket 1: Lucky Charm trinket Quick | [x] Healing Potions in your bags Quick"
         .. " | [ ] Mana Potions in your bags Quick | [ ] Hearthstone in your bags Quick",
         "potions you carry and bag items with a use, listed from your bags, unticked")
-    -- Bag items aren't seen pulsing in game yet: their ticks say so.
-    -- Trinkets, healthstones and potions have been (in this addon, 1.0.0).
+    -- Bag items, trinkets, healthstones and potions: each tick says what it
+    -- does, none marked experimental.
     do
         local trinketRow, potionRow = RowFor(page, "slot:13"), RowFor(page, "family:healing")
         trinketRow.check:SetChecked(false)
         potionRow.check:SetChecked(false)
         Equal(Note(RowFor(page, "item:6948").check) .. " | " .. Note(RowFor(page, "family:mana").check) .. " | "
             .. Note(trinketRow.check) .. " | " .. Note(potionRow.check),
-            "Tick to pulse when Hearthstone is ready. (experimental) | Tick to pulse when Mana Potions is ready."
+            "Tick to pulse when Hearthstone is ready. | Tick to pulse when Mana Potions is ready."
             .. " | Tick to pulse when Trinket 1: Lucky Charm is ready. | Tick to pulse when Healing Potions is ready.",
-            "bag items are quietly experimental on their ticks; trinkets and potions aren't")
+            "bag items, trinkets and potions: none marked experimental on their ticks")
         trinketRow.check:SetChecked(true)
         potionRow.check:SetChecked(true)
     end
     RowFor(page, "item:6948").check:Click()
     Equal(tostring(watchers["item:6948"] ~= nil) .. " " .. tostring(Profile("pulsePick")["item:6948"]) .. " "
-        .. Note(RowFor(page, "item:6948").check), "true true Untick to leave Hearthstone out.", "ticked: watched, and experimental only on the tick")
+        .. Note(RowFor(page, "item:6948").check), "true true Untick to leave Hearthstone out.", "ticked: watched, its note says how to leave it out")
     -- Run out of it, /fecp open (its list shows your bags): read again, gone.
     -- Carrying it again, with /fecp shut: read again, watched again.
     H.bag[1], H.counts[6948] = nil, 0
@@ -799,7 +827,7 @@ do
     end
     for i, style in ipairs({ "Quick", "Long" }) do
         page.edit.buttons[i]:Click()
-        Equal(Laid(), "15 |  | ", style .. " under Edit: every tick, label, choice and slider inside the options, none on another")
+        Equal(Laid(), "16 |  | ", style .. " under Edit: every tick, label, choice and slider inside the options, none on another")
     end
     page.edit.buttons[1]:Click()
     Equal(H.Problems2D(page), "", "every piece of the page inside it, none on another")
@@ -1543,8 +1571,8 @@ do
     Equal(tostring(mns.Get("pulseProcs")) .. " " .. tostring(mpage.procs.checked) .. " " .. tostring(mpage.procs.usable) .. " " .. #H.containers
         .. " " .. tostring(Rows(mpage):find("PROCS", 1, true)) .. " | " .. S[mpage.procs.text].text .. " | " .. Note(mpage.procs),
         "false false true 0 nil | Procs too | Your class's procs, like Clearcasting or Missile Barrage: a pulse the moment one lands, in a"
-        .. " fight too. Procs pulse without a sound. (experimental)",
-        "off by default: its tick free, saying what it does, quietly experimental; no container made, no Procs in the list")
+        .. " fight too. Procs pulse without a sound.",
+        "off by default: its tick free, saying what it does, not marked experimental; no container made, no Procs in the list")
     Equal(Spot(mpage.items) .. " | " .. Spot(mpage.procs) .. " | " .. Spot(mpage.volume) .. " | " .. S[mpage.options].height .. " "
         .. S[mpage.look].height, "TOPLEFT 312 -94 | TOPLEFT 312 -116 | TOPLEFT 312 -138 | 156 130",
         "right under Trinkets and potions too, Master volume moved down, the options taller and the walkthrough's part with them")
@@ -1559,7 +1587,7 @@ do
         "ticked on: the mage's procs under the spells, by name, each keyed by its first buff's ID with its icon, unticked and Quick; still no container")
     local barrage = RowFor(mpage, "proc:400589")
     Equal(S[barrage.long].text .. "| " .. Note(barrage.check) .. " | " .. Note(barrage.style.buttons[2]),
-        "| Tick to pulse when Missile Barrage lands. (experimental) | Once ticked, Missile Barrage pulses Quick. Click for Long. Each style has"
+        "| Tick to pulse when Missile Barrage lands. | Once ticked, Missile Barrage pulses Quick. Click for Long. Each style has"
         .. " its own size and time, set under Edit above. Procs pulse without a sound.",
         "no cooldown beside it; its tick and switch say what they do, a proc's style without a sound")
 

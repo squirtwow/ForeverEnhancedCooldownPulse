@@ -137,6 +137,9 @@ ns.LOCALES.ptBR = {
     ["Your class's procs, like Clearcasting or Missile Barrage: a pulse the moment one lands, in a fight too. Procs pulse without a sound."]
         = "Os procs da sua classe, como Clarividência ou Barragem de Mísseis: um pulso assim que um deles surge, também em combate. Procs pulsam sem som.",
     ["Your game can't show proc pulses."] = "Seu jogo não consegue mostrar pulsos de procs.",
+    ["Early resets too"] = "Reinícios também",
+    ["A pulse when a talent brings a cooldown back early, like a reset after a parry or dodge."]
+        = "Um pulso quando um talento devolve uma recarga mais cedo, como um reinício após aparar ou esquivar.",
     ["Play at Master volume"] = "Tocar no volume geral",
     ["Plays the sound at your Master volume, so you hear it with Sound Effects down or off. Your sound settings don't change."]
         = "Toca o som no volume geral, para você ouvir mesmo com os efeitos sonoros baixos ou desligados. Suas configurações de som não mudam.",
@@ -149,7 +152,6 @@ ns.LOCALES.ptBR = {
     ["Each style has its own size and time, set under Edit above. Procs pulse without a sound."]
         = "Cada estilo tem tamanho e duração próprios, ajustados em Editar, acima. Procs pulsam sem som.",
     ["Procs"] = "Procs",
-    [" (experimental)"] = " (experimental)",
     ["%s pulses %s."] = "%s: pulso %s.",
     ["Once ticked, %s pulses %s."] = "Se você marcar %s, o pulso será %s.",
     ["Click for %s."] = "Aperte para usar o %s.",
@@ -395,6 +397,10 @@ ns.LOCALES.ptBR = {
         = "Atirar com uma varinha não dispara mais o pulso de feitiços prontos.",
     ["Added procs to Cooldown pulse."]
         = "Procs adicionados ao pulso de recarga.",
+    ["Early resets can pulse, like Improved Stormstrike after a parry."]
+        = "Reinícios antecipados podem pulsar, como Improved Stormstrike após um aparo.",
+    ["Options no longer say experimental."]
+        = "As opções não dizem mais experimental.",
     ["The pulse no longer goes off again and again in a fight for a spell that's already ready."]
         = "O pulso não dispara mais sem parar em combate para um feitiço que já está pronto.",
     ["Spell data updated for launch."]

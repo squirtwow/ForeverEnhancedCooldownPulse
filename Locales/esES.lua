@@ -152,6 +152,9 @@ ns.LOCALES.esES = {
     ["Your class's procs, like Clearcasting or Missile Barrage: a pulse the moment one lands, in a fight too. Procs pulse without a sound."]
         = "Los procs de tu clase, como Libre lanzamiento o Tromba de misiles: un aviso en cuanto se activa uno, también en combate. Los procs avisan sin sonido.",
     ["Your game can't show proc pulses."] = "Tu juego no puede mostrar avisos de procs.",
+    ["Early resets too"] = "También reinicios",
+    ["A pulse when a talent brings a cooldown back early, like a reset after a parry or dodge."]
+        = "Un pulso cuando un talento recupera antes un tiempo de reutilización, como un reinicio tras parar o esquivar.",
     ["Play at Master volume"] = "Sonar con el volumen general",
     ["Plays the sound at your Master volume, so you hear it with Sound Effects down or off. Your sound settings don't change."]
         = "Reproduce el sonido con tu volumen general, para oírlo aunque los efectos de sonido estén bajos o desactivados. Tus opciones de sonido no cambian.",
@@ -164,7 +167,6 @@ ns.LOCALES.esES = {
     ["Each style has its own size and time, set under Edit above. Procs pulse without a sound."]
         = "Tamaño y duración de cada estilo: en Editar, arriba. Los procs avisan sin sonido.",
     ["Procs"] = "Procs",
-    [" (experimental)"] = " (experimental)",
     ["%s pulses %s."] = "%s usa el aviso %s.",
     ["Once ticked, %s pulses %s."] = "Al marcar la casilla, %s usará el aviso %s.",
     ["Click for %s."] = "Haz clic para elegir %s.",
@@ -411,6 +413,10 @@ ns.LOCALES.esES = {
         = "Disparar con una varita ya no hace saltar el aviso de los hechizos listos.",
     ["Added procs to Cooldown pulse."]
         = "Añadidos los procs al aviso de reutilización.",
+    ["Early resets can pulse, like Improved Stormstrike after a parry."]
+        = "Los reinicios anticipados pueden dar aviso, como Improved Stormstrike tras una parada.",
+    ["Options no longer say experimental."]
+        = "Las opciones ya no dicen experimental.",
     ["The pulse no longer goes off again and again in a fight for a spell that's already ready."]
         = "El aviso ya no salta una y otra vez en combate por un hechizo que ya está listo.",
     ["Spell data updated for launch."]

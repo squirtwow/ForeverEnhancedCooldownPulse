@@ -125,6 +125,9 @@ ns.LOCALES.zhCN = {
     ["Your class's procs, like Clearcasting or Missile Barrage: a pulse the moment one lands, in a fight too. Procs pulse without a sound."]
         = "你职业的触发效果，例如节能施法或飞弹速射：一触发就会提示，战斗中也一样。触发效果提示时没有声音。",
     ["Your game can't show proc pulses."] = "你的游戏无法显示触发效果提示。",
+    ["Early resets too"] = "提前重置也提示",
+    ["A pulse when a talent brings a cooldown back early, like a reset after a parry or dodge."]
+        = "天赋让冷却提前结束时也会闪现，例如招架或躲闪后的重置。",
     ["Play at Master volume"] = "以主音量播放",
     ["Plays the sound at your Master volume, so you hear it with Sound Effects down or off. Your sound settings don't change."]
         = "以主音量播放声音，即使音效调低或关闭也能听到。你的声音设置不会改变。",
@@ -136,7 +139,6 @@ ns.LOCALES.zhCN = {
     ["Each style has its own size and time, set under Edit above. Procs pulse without a sound."]
         = "每种样式都有自己的大小和时长，在上方「编辑」中设置。触发效果提示时没有声音。",
     ["Procs"] = "触发效果",
-    [" (experimental)"] = "（实验性）",
     ["%s pulses %s."] = "%s 以「%s」样式提示。",
     ["Once ticked, %s pulses %s."] = "勾选后，%s 将以「%s」样式提示。",
     ["Click for %s."] = "点击改为「%s」。",
@@ -358,6 +360,10 @@ ns.LOCALES.zhCN = {
         = "使用魔杖射击时，已就绪的法术不会再触发提示。",
     ["Added procs to Cooldown pulse."]
         = "冷却提示新增触发效果。",
+    ["Early resets can pulse, like Improved Stormstrike after a parry."]
+        = "提前重置也可以提示，例如招架后的 Improved Stormstrike。",
+    ["Options no longer say experimental."]
+        = "选项不再标注为实验性。",
     ["The pulse no longer goes off again and again in a fight for a spell that's already ready."]
         = "战斗中已就绪的法术不会再反复触发提示。",
     ["Spell data updated for launch."]

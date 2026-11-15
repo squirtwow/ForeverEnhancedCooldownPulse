@@ -27,7 +27,7 @@ local LATIN = { deDE = true, frFR = true, esES = true, ptBR = true }
 -- same lists): names in every language, and in Latin letters SAME too.
 local NAMES = { "Discord", "CurseForge", "GitHub", "EraUI", "Forever Enhanced Cooldown Manager", "OK" }
 local SAME = { "%gs", "%.1fs", "%g min", "Item %d", "Version %s", "General", "Long", "Orange", "Gold", "Fanfare", "Synth",
-    " (experimental)", "Procs" }
+    "Procs" }
 local function Allowed(lang, english)
     for _, word in ipairs(NAMES) do if word == english then return true end end
     if not LATIN[lang] then return false end

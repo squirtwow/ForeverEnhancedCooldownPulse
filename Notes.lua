@@ -14,6 +14,18 @@ local T, L = ns.Theme, ns.L
 -- needs its line in every file in Locales (Tools/TestLocale.mjs checks).
 ns.NOTES = {
     {
+        version = "1.0.11",
+        sections = {
+            { "Added", {
+                "Early resets can pulse, like Improved Stormstrike after a parry.",
+            } },
+            { "Changed", {
+                "Options no longer say experimental.",
+                "Spell data updated for Forever's latest patch.",
+            } },
+        },
+    },
+    {
         version = "1.0.10",
         sections = {
             { "Added", {

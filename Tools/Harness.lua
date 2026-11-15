@@ -138,6 +138,8 @@ local function Sealed(what)
 end
 H.SEALED = setmetatable({}, { __index = Sealed("read"), __newindex = Sealed("wrote on"), __len = Sealed("measured"),
     __call = Sealed("called"), __tostring = Sealed("turned into text") })
+-- The game's duration for a cooldown that's come back (H.zero), sealed the same.
+H.ZERO = setmetatable({}, getmetatable(H.SEALED))
 
 -- Mock objects -----------------------------------------------------------------------------
 
@@ -386,6 +388,9 @@ function Proto:SetCooldownFromDurationObject(duration)
     S[self].durationObject = duration
     S[self].cooldown = nil
     Record(self, "SetCooldownFromDurationObject", duration)
+    -- A zero duration (a cooldown come back, H.zero) clears it, as the
+    -- game's does by default: the frame hides, with no done script.
+    if rawequal(duration, H.ZERO) then self:Hide() end
 end
 function Proto:Clear()
     local s = S[self]
@@ -777,11 +782,12 @@ function H.Environment()
     -- (a cooldown that starts once its effect is used up). Like the game:
     -- the times secret, whether it's on hold never, nor whether it's only
     -- the global cooldown (H.onGCD).
-    H.asked, H.held, H.onGCD = {}, {}, {}
+    H.asked, H.held, H.onGCD, H.zero = {}, {}, {}, {}
     _G.C_Spell = {
         GetSpellCooldownDuration = function(id, ignoreGCD)
             if ignoreGCD ~= true then Violation("asked for a cooldown with the global cooldown") end
             H.asked[#H.asked + 1] = id
+            if H.zero[id] then return H.ZERO end
             return H.SEALED
         end,
         GetSpellCooldown = function(id)

@@ -152,6 +152,9 @@ ns.LOCALES.frFR = {
     ["Your class's procs, like Clearcasting or Missile Barrage: a pulse the moment one lands, in a fight too. Procs pulse without a sound."]
         = "Les procs de votre classe, comme Idées claires ou Barrage de projectiles : une pulsation dès que l'un d'eux se déclenche, même en combat. Les procs sont signalés sans son.",
     ["Your game can't show proc pulses."] = "Votre jeu ne peut pas afficher les pulsations des procs.",
+    ["Early resets too"] = "Remises à zéro aussi",
+    ["A pulse when a talent brings a cooldown back early, like a reset after a parry or dodge."]
+        = "Une pulsation quand un talent rend un temps de recharge plus tôt, comme une remise à zéro après une parade ou une esquive.",
     ["Play at Master volume"] = "Jouer au volume principal",
     ["Plays the sound at your Master volume, so you hear it with Sound Effects down or off. Your sound settings don't change."]
         = "Joue le son au volume principal, pour l'entendre même avec les effets sonores baissés ou coupés. Vos réglages de son ne changent pas.",
@@ -164,7 +167,6 @@ ns.LOCALES.frFR = {
     ["Each style has its own size and time, set under Edit above. Procs pulse without a sound."]
         = "Taille et durée de chaque style : sous Modifier plus haut. Procs signalés sans son.",
     ["Procs"] = "Procs",
-    [" (experimental)"] = " (expérimental)",
     ["%s pulses %s."] = "%s : pulsation %s.",
     ["Once ticked, %s pulses %s."] = "Une fois la case cochée, %s aura une pulsation %s.",
     ["Click for %s."] = "Cliquez pour passer en %s.",
@@ -410,6 +412,10 @@ ns.LOCALES.frFR = {
         = "Tirer à la baguette ne déclenche plus la pulsation des sorts prêts.",
     ["Added procs to Cooldown pulse."]
         = "Ajout des procs à la pulsation de recharge.",
+    ["Early resets can pulse, like Improved Stormstrike after a parry."]
+        = "Les remises à zéro anticipées peuvent pulser, comme Improved Stormstrike après une parade.",
+    ["Options no longer say experimental."]
+        = "Les options ne sont plus marquées expérimentales.",
     ["The pulse no longer goes off again and again in a fight for a spell that's already ready."]
         = "La pulsation ne se déclenche plus encore et encore en combat pour un sort déjà prêt.",
     ["Spell data updated for launch."]

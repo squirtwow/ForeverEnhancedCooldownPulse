@@ -9,8 +9,8 @@
 // every name the addon puts in the game's global space is its own (FECP),
 // never Forever Enhanced Cooldown Manager's; that addon's saved settings are
 // only read, in Link.lua alone; the art is right; no em dash in anything
-// players read; untested options marked the quiet "(experimental)" way; no
-// function given twice in a file; and no other addon is named anywhere.
+// players read; no option marked experimental; no function given twice in
+// a file; and no other addon is named anywhere.
 // Run with: node --test Tools/TestRules.mjs
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -529,20 +529,30 @@ test('no em dashes in anything players read', async () => {
   assert.deepEqual(found, [], 'no em dash written as an escape');
 });
 
-// Untested options are marked the quiet way, " (experimental)", as in Forever
-// Enhanced Cooldown Manager (the user's call, 2026-10-17): never the old
-// "Needs testing" nor a capital "Experimental" in any string a player reads.
-test('untested options are marked the quiet way, never "Needs testing"', async () => {
+// No option is marked experimental, as in Forever Enhanced Cooldown Manager
+// (Squirt's call, 2026-11-14: he tries each new one in game right away; new
+// options still start off): never "experimental" nor the old "Needs
+// testing", in any case, in any string a player reads. The one exception:
+// 1.0.11's note saying the word is gone (as Forever Enhanced Cooldown
+// Manager's 1.10.13 note), in English and its six translations.
+const GONE_NOTE = new Set([
+  'Options no longer say experimental.',
+  'Optionen sind nicht mehr als experimentell markiert.',
+  'Las opciones ya no dicen experimental.',
+  'Les options ne sont plus marquées expérimentales.',
+  'As opções não dizem mais experimental.',
+  'Параметры больше не помечены как экспериментальные.',
+  '选项不再标注为实验性。',
+]);
+test('no option is marked experimental or "Needs testing"', async () => {
   const found = [];
-  let quiet = 0;
   for (const { name, source } of await addonCode()) {
     for (const { text, index } of literals(source)) {
-      if (/needs testing/i.test(text) || /Experimental|EXPERIMENTAL/.test(text)) found.push(`${name}:${lineOf(source, index)} ${text}`);
-      if (name === 'PulsePage.lua' && text === ' (experimental)') quiet++;
+      if (GONE_NOTE.has(text)) continue;
+      if (/needs testing|experimental/i.test(text)) found.push(`${name}:${lineOf(source, index)} ${text}`);
     }
   }
-  assert.deepEqual(found, [], 'the old wording, or a loud one');
-  assert.equal(quiet, 3, "the pulse page's bag items, its Procs too tick and each proc's row say it the quiet way");
+  assert.deepEqual(found, [], 'an option marked experimental, or the old wording');
 });
 
 // Other addons are never named, in the addon, its text or its tests. Their
