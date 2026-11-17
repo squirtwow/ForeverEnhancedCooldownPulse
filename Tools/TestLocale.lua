@@ -466,6 +466,8 @@ local function Everywhere(ns, label)
     -- The procs' tick and header: the tick's label clear of the column's
     -- edge, the header in its row.
     Fits(S[page.procs.text].text, "GameFontHighlight", S[page.options].width - 312 - 18, "the procs' tick:")
+    -- The procs' sound tick, in the left column: clear of Master volume's.
+    Fits(S[page.procSound.text].text, "GameFontHighlight", 312 - 18 - 12, "the procs' sound tick:")
     Fits(ns.Upper(L["Procs"]), "GameFontHighlightSmall", 200, "the procs' header:")
     Equal(table.concat(tight, ", "), "", label .. ": every label, value and name inside its own room")
     ns.SetPulsePick("proc:16870", nil)

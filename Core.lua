@@ -67,6 +67,7 @@ ns.DEFAULTS = {
     pulseItems = true, -- your trinkets, potions and items with a use are listed too
     pulseProcs = false, -- your class's procs are listed too, each pulsing as it lands
     pulseResets = false, -- a cooldown a talent brings back early pulses too
+    pulseProcSound = false, -- Sound on procs: each ticked proc plays its style's sound as it lands (the game plays it)
     pulseX = 0, -- where it sits: from the middle of the screen
     pulseY = 0,
     accent = "purple", -- the /fecp window's accent colour
@@ -582,6 +583,19 @@ function ns.SetHelpSeen()
     db.helpSeen = true
 end
 
+-- The IDs the game gave the sounds it plays as a proc lands (Pulse.lua's
+-- Aura sounds), in order: kept, so the next session lets go of any the game
+-- still holds before it makes its own (Load). None kept when there are none.
+function ns.SaveAuraSounds(ids)
+    if not db then return end
+    local kept = {}
+    for _, id in ipairs(type(ids) == "table" and ids or {}) do
+        if type(id) == "number" then kept[#kept + 1] = id end
+    end
+    table.sort(kept)
+    db.auraSoundIDs = #kept > 0 and kept or nil
+end
+
 -- Escape closes the /fecp window and What's new through the game's own list
 -- of windows Escape closes (UISpecialFrames), never by changing key bindings:
 -- a binding changed from addon code has the game rebuild your action bars
@@ -640,6 +654,10 @@ local function Load()
     -- An empty settings file: the addon's first login on this account.
     ns.firstInstall = next(db) == nil
     if db.helpSeen ~= true then db.helpSeen = nil end -- the ? clicked once: true, or not saved at all
+    db.devSoundLog = nil -- a development build's aura sound log
+    local saved = db.auraSoundIDs
+    db.auraSoundIDs = nil
+    if ns.Pulse then ns.Pulse:DropSavedSounds(saved) end -- sounds the game may still hold from before a reload, let go before any are made
     -- The language first, so everything the addon shows from now on is in it.
     ns.UseLanguage(ns.LanguageFor(ns.Get("language")))
     -- Everything saved is checked and repaired now, before anything uses it.
@@ -681,5 +699,7 @@ loader:SetScript("OnEvent", function(self, event, name)
         -- settings loaded.
         if not active and ns.ResolveProfile(true) and ns.Pulse and ns.Pulse.started then ns.Pulse:Apply() end
         if ns.NameUnknownProfile() and ns.window and ns.window:IsShown() then ns.window:Refresh() end
+        -- The sounds the game plays as a proc lands, never told it before now.
+        if ns.Pulse then ns.Pulse:SoundsReady() end
     end
 end)

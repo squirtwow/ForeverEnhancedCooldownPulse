@@ -171,12 +171,16 @@ ns.LOCALES.deDE = {
     ["Your trinkets, potions, healthstones and other items with a use in your bags. Only ones with a cooldown pulse."]
         = "Deine Schmuckstücke, Tränke, Gesundheitssteine und andere benutzbare Gegenstände in deinen Taschen. Nur solche mit Abklingzeit pulsieren.",
     ["Procs too"] = "Auch Procs",
-    ["Your class's procs, like Clearcasting or Missile Barrage: a pulse the moment one lands, in a fight too. Procs pulse without a sound."]
-        = "Die Procs deiner Klasse, etwa Freizaubern oder Geschosssalve: ein Puls, sobald einer auslöst, auch im Kampf. Procs pulsieren ohne Klang.",
+    ["Your class's procs, like Clearcasting or Missile Barrage: a pulse the moment one lands, in a fight too."]
+        = "Die Procs deiner Klasse, etwa Freizaubern oder Geschosssalve: ein Puls, sobald einer auslöst, auch im Kampf.",
     ["Your game can't show proc pulses."] = "Dein Spiel kann keine Proc-Pulse anzeigen.",
     ["Early resets too"] = "Auch frühe Resets",
     ["A pulse when a talent brings a cooldown back early, like a reset after a parry or dodge."]
         = "Ein Puls, wenn ein Talent eine Abklingzeit früher zurückbringt, etwa ein Reset nach Parieren oder Ausweichen.",
+    ["Sound on procs"] = "Klang bei Procs",
+    ["Your game can't play proc sounds."] = "Dein Spiel kann keine Proc-Klänge abspielen.",
+    ["Each ticked proc plays its style's sound as it lands, in a fight too. Pick each style's sound under Edit above."]
+        = "Jeder angehakte Proc spielt den Klang seines Stils ab, sobald er auslöst, auch im Kampf. Den Klang je Stil wählst du oben unter Bearbeiten.",
     ["Play at Master volume"] = "Mit Gesamtlautstärke abspielen",
     ["Plays the sound at your Master volume, so you hear it with Sound Effects down or off. Your sound settings don't change."]
         = "Spielt den Klang mit deiner Gesamtlautstärke ab, damit du ihn auch bei leisen oder ausgeschalteten Soundeffekten hörst. Deine Soundeinstellungen bleiben unverändert.",
@@ -186,14 +190,13 @@ ns.LOCALES.deDE = {
     ["Untick to leave %s out."] = "Haken entfernen, um %s auszulassen.",
     ["Tick to pulse when %s is ready."] = "Anhaken, damit %s pulsiert, sobald bereit.",
     ["Tick to pulse when %s lands."] = "Anhaken, damit %s beim Auslösen pulsiert.",
-    ["Each style has its own size and time, set under Edit above. Procs pulse without a sound."]
-        = "Größe und Dauer je Stil stellst du oben unter Bearbeiten ein. Procs pulsieren ohne Klang.",
+    ["Procs play their sound only with Sound on procs ticked."] = "Procs klingen nur mit Klang bei Procs.",
     ["Procs"] = "Procs",
     ["%s pulses %s."] = '%s pulsiert im Stil "%s".',
     ["Once ticked, %s pulses %s."] = 'Angehakt pulsiert %s im Stil "%s".',
     ["Click for %s."] = 'Klicke, um zum Stil "%s" zu wechseln.',
     ["Each style has its own size, time and sound, set under Edit above."]
-        = "Jeder Stil hat eigene Werte für Größe, Dauer und Klang, einstellbar oben unter Bearbeiten.",
+        = "Größe, Dauer und Klang je Stil stellst du oben unter Bearbeiten ein.",
     ["Spells"] = "Zauber",
     ["Items"] = "Gegenstände",
     ["trinket"] = "Schmuckstück",
@@ -436,6 +439,8 @@ ns.LOCALES.deDE = {
         = "Procs zum Abklingzeit-Puls hinzugefügt.",
     ["Early resets can pulse, like Improved Stormstrike after a parry."]
         = "Frühe Resets können pulsieren, etwa Improved Stormstrike nach einem Parieren.",
+    ["Sound on procs: proc pulses can play your pulse sound."]
+        = "Klang bei Procs: Proc-Pulse können deinen Puls-Klang abspielen.",
     ["Options no longer say experimental."]
         = "Optionen sind nicht mehr als experimentell markiert.",
     ["The pulse no longer goes off again and again in a fight for a spell that's already ready."]

@@ -122,12 +122,16 @@ ns.LOCALES.zhCN = {
     ["Your trinkets, potions, healthstones and other items with a use in your bags. Only ones with a cooldown pulse."]
         = "你的饰品、药水、治疗石以及背包里其他可使用的物品。只有带冷却的才会提示。",
     ["Procs too"] = "也包括触发效果",
-    ["Your class's procs, like Clearcasting or Missile Barrage: a pulse the moment one lands, in a fight too. Procs pulse without a sound."]
-        = "你职业的触发效果，例如节能施法或飞弹速射：一触发就会提示，战斗中也一样。触发效果提示时没有声音。",
+    ["Your class's procs, like Clearcasting or Missile Barrage: a pulse the moment one lands, in a fight too."]
+        = "你职业的触发效果，例如节能施法或飞弹速射：一触发就会提示，战斗中也一样。",
     ["Your game can't show proc pulses."] = "你的游戏无法显示触发效果提示。",
     ["Early resets too"] = "提前重置也提示",
     ["A pulse when a talent brings a cooldown back early, like a reset after a parry or dodge."]
         = "天赋让冷却提前结束时也会闪现，例如招架或躲闪后的重置。",
+    ["Sound on procs"] = "触发效果播放声音",
+    ["Your game can't play proc sounds."] = "你的游戏无法播放触发效果的声音。",
+    ["Each ticked proc plays its style's sound as it lands, in a fight too. Pick each style's sound under Edit above."]
+        = "每个勾选的触发效果一触发就播放其样式的声音，战斗中也一样。每种样式的声音在上方「编辑」中选择。",
     ["Play at Master volume"] = "以主音量播放",
     ["Plays the sound at your Master volume, so you hear it with Sound Effects down or off. Your sound settings don't change."]
         = "以主音量播放声音，即使音效调低或关闭也能听到。你的声音设置不会改变。",
@@ -136,8 +140,7 @@ ns.LOCALES.zhCN = {
     ["Untick to leave %s out."] = "取消勾选后不再提示 %s。",
     ["Tick to pulse when %s is ready."] = "勾选后，%s 就绪时会提示。",
     ["Tick to pulse when %s lands."] = "勾选后，%s 触发时会提示。",
-    ["Each style has its own size and time, set under Edit above. Procs pulse without a sound."]
-        = "每种样式都有自己的大小和时长，在上方「编辑」中设置。触发效果提示时没有声音。",
+    ["Procs play their sound only with Sound on procs ticked."] = "只有勾选「触发效果播放声音」后，触发效果才会播放声音。",
     ["Procs"] = "触发效果",
     ["%s pulses %s."] = "%s 以「%s」样式提示。",
     ["Once ticked, %s pulses %s."] = "勾选后，%s 将以「%s」样式提示。",
@@ -362,6 +365,8 @@ ns.LOCALES.zhCN = {
         = "冷却提示新增触发效果。",
     ["Early resets can pulse, like Improved Stormstrike after a parry."]
         = "提前重置也可以提示，例如招架后的 Improved Stormstrike。",
+    ["Sound on procs: proc pulses can play your pulse sound."]
+        = "触发效果播放声音：触发效果提示可以播放你的提示音。",
     ["Options no longer say experimental."]
         = "选项不再标注为实验性。",
     ["The pulse no longer goes off again and again in a fight for a spell that's already ready."]

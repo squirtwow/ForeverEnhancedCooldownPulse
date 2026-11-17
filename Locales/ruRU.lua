@@ -135,12 +135,16 @@ ns.LOCALES.ruRU = {
     ["Your trinkets, potions, healthstones and other items with a use in your bags. Only ones with a cooldown pulse."]
         = "Ваши аксессуары, зелья, камни здоровья и другие используемые предметы в сумках. Вспыхивают только те, у которых есть восстановление.",
     ["Procs too"] = "Также проки",
-    ["Your class's procs, like Clearcasting or Missile Barrage: a pulse the moment one lands, in a fight too. Procs pulse without a sound."]
-        = "Проки вашего класса, например «Ясность мысли» или «Шквал чародейских стрел»: вспышка в момент срабатывания, в том числе в бою. Проки вспыхивают без звука.",
+    ["Your class's procs, like Clearcasting or Missile Barrage: a pulse the moment one lands, in a fight too."]
+        = "Проки вашего класса, например «Ясность мысли» или «Шквал чародейских стрел»: вспышка в момент срабатывания, в том числе в бою.",
     ["Your game can't show proc pulses."] = "Ваша игра не может показывать вспышки проков.",
     ["Early resets too"] = "И ранние сбросы",
     ["A pulse when a talent brings a cooldown back early, like a reset after a parry or dodge."]
         = "Пульс, когда талант досрочно возвращает восстановление, например сброс после парирования или уклонения.",
+    ["Sound on procs"] = "Звук проков",
+    ["Your game can't play proc sounds."] = "Ваша игра не может проигрывать звуки проков.",
+    ["Each ticked proc plays its style's sound as it lands, in a fight too. Pick each style's sound under Edit above."]
+        = "Каждый отмеченный прок проигрывает звук своего стиля в момент срабатывания, в том числе в бою. Звук стиля выбирается в строке «Изменить» выше.",
     ["Play at Master volume"] = "Звук на общей громкости",
     ["Plays the sound at your Master volume, so you hear it with Sound Effects down or off. Your sound settings don't change."]
         = "Проигрывает звук на общей громкости, чтобы его было слышно даже при тихих или выключенных звуковых эффектах. Ваши настройки звука не меняются.",
@@ -150,14 +154,13 @@ ns.LOCALES.ruRU = {
     ["Untick to leave %s out."] = "Снимите отметку, чтобы убрать «%s».",
     ["Tick to pulse when %s is ready."] = "Отметьте для вспышки по готовности: %s.",
     ["Tick to pulse when %s lands."] = "Отметьте для вспышки при срабатывании: %s.",
-    ["Each style has its own size and time, set under Edit above. Procs pulse without a sound."]
-        = "Размер и время стиля задаются в строке «Изменить» выше. Проки вспыхивают без звука.",
+    ["Procs play their sound only with Sound on procs ticked."] = "Без отметки «Звук проков» проки молчат.",
     ["Procs"] = "Проки",
     ["%s pulses %s."] = "%s: вспышка «%s».",
     ["Once ticked, %s pulses %s."] = "%s (после отметки): вспышка «%s».",
     ["Click for %s."] = "Нажмите, чтобы выбрать «%s».",
     ["Each style has its own size, time and sound, set under Edit above."]
-        = "У каждого стиля свои размер, время и звук: они задаются в строке «Изменить» выше.",
+        = "Размер, время и звук стиля задаются в строке «Изменить» выше.",
     ["Spells"] = "Заклинания",
     ["Items"] = "Предметы",
     ["trinket"] = "аксессуар",
@@ -401,6 +404,8 @@ ns.LOCALES.ruRU = {
         = "Добавлены проки во вспышку восстановления.",
     ["Early resets can pulse, like Improved Stormstrike after a parry."]
         = "Ранние сбросы могут давать вспышку, например Improved Stormstrike после парирования.",
+    ["Sound on procs: proc pulses can play your pulse sound."]
+        = "Звук проков: вспышки проков могут проигрывать ваш звук вспышки.",
     ["Options no longer say experimental."]
         = "Параметры больше не помечены как экспериментальные.",
     ["The pulse no longer goes off again and again in a fight for a spell that's already ready."]

@@ -32,8 +32,9 @@
 --
 -- Procs can pulse too, the moment one lands (Procs, below): the game plays
 -- those itself, in its own aura container, so they take no turns with the
--- cooldowns and play no sound. The same as Forever Enhanced Cooldown
--- Manager's proc pulses.
+-- cooldowns. With Sound on procs, the game plays each one's sound itself
+-- too (Aura sounds, below). The same as Forever Enhanced Cooldown Manager's
+-- proc pulses.
 local _, ns = ...
 
 local P = {}
@@ -63,6 +64,10 @@ P.SOUNDS = {
     jackpot = 316717, -- Jackpot Bell
     anvil = 316528, -- Anvil Strike
 }
+-- The same sounds as files, for the sounds the game plays itself as an aura lands (C_UnitAuras.AddAuraSound takes a file, not a kit): each kit's one file (SoundKitEntry, Forever's data).
+P.SOUND_FILES = { chime = 7466072, bell = 7466126, trill = 7466945, shimmerBell = 7467100, magicChimes = 7467025, shimmer = 7467098,
+    zippy = 7467027, synth = 7466092, pipe = 7466138, brass = 7466965, warhorn = 7466967, fanfare = 7467082, gold = 7467072,
+    jackpot = 7466955, anvil = 7466899 }
 P.QUIET = 2 -- seconds after logging in, a reload or a loading screen with no pulses
 P.AGAIN = 3 -- the same cooldown done again this soon is the same one, told twice
 P.WAITING = 3 -- pulses waiting their turn at most; any more are let go
@@ -717,6 +722,156 @@ function P:Preview()
     return self:Queue(self:SampleIcon(), "preview", true, style)
 end
 
+-- Aura sounds ------------------------------------------------------------------------------
+-- A sound the game plays itself the moment a buff lands on you
+-- (C_UnitAuras.AddAuraSound): told out of a fight which buff plays which
+-- sound file, it needs nothing of the addon's in a fight, and no secret is
+-- read. Sound on procs is what asks for them here (Procs, below: each ticked
+-- proc's style's sound). Each who asks is an owner, and a spell two owners
+-- want plays the first one's sound, never two. Nothing is told the game
+-- before you log in, nor in a fight (a change then waits for it to end),
+-- and only when what's wanted changed: every sound of the addon's goes, then
+-- the new ones are added. Every call goes through pcall. One the game
+-- refuses isn't asked again until something changes, or a reload; /fecp
+-- debug says how many and why. All of them are let go of as you log out or
+-- reload, and the IDs the game gives are saved, so the next session lets go
+-- of any it still holds too (Core.lua Load). The same as Forever
+-- Enhanced Cooldown Manager's, whose bars play their sounds through it too.
+
+local SOUND_OWNERS = { "procs" } -- who asks for sounds, the first listed winning a spell two want
+-- Each owner's sounds ("unit:spellID" -> sound key), the game's ID for each
+-- one made, what it was last told, whether that waits for a fight to end,
+-- whether you're logged in yet, and how many the game refused, with the first why.
+local auraSounds = { owners = {}, live = {}, applied = nil, pending = false, ready = false, refused = 0, error = nil }
+
+-- Whether the game can play a sound as an aura lands.
+function P:CanSound()
+    local api = C_UnitAuras
+    return type(api) == "table" and type(api.AddAuraSound) == "function" and type(api.RemoveAuraSound) == "function"
+end
+
+-- Every one of the addon's sounds let go of.
+local function LetGo()
+    local api = C_UnitAuras
+    for _, id in pairs(auraSounds.live) do
+        pcall(api.RemoveAuraSound, id)
+    end
+    auraSounds.live = {}
+end
+
+-- A frame of its own: it waits for a fight's end, then tells the game; and
+-- as you log out or reload it lets go of every one of the addon's sounds, so
+-- none outlives the session even when the addon isn't there next time
+-- (turned off, or an older version). The saved IDs stay, and the next load
+-- lets go of them too, in case the game kept any.
+local function Watch()
+    local watch = auraSounds.watch
+    if not watch then
+        watch = CreateFrame("Frame")
+        watch:SetScript("OnEvent", function(self, event)
+            if event == "PLAYER_LOGOUT" then return LetGo() end
+            self:UnregisterEvent("PLAYER_REGEN_ENABLED")
+            P:ApplySounds()
+        end)
+        auraSounds.watch = watch
+    end
+    return watch
+end
+
+-- Waits for the fight's end.
+local function SoundsLater()
+    Watch():RegisterEvent("PLAYER_REGEN_ENABLED")
+end
+
+-- What's wanted: each "unit:spellID" once, with its first owner's sound, in
+-- order; the channel (Play at Master volume, as the pulse's own sound); and
+-- all of it as one line, to tell whether anything changed.
+local function SoundsWanted()
+    local wanted, keys = {}, {}
+    for _, owner in ipairs(SOUND_OWNERS) do
+        for at, sound in pairs(auraSounds.owners[owner] or {}) do
+            if wanted[at] == nil then wanted[at], keys[#keys + 1] = sound, at end
+        end
+    end
+    table.sort(keys)
+    local channel = ns.Get("pulseMaster") and "Master" or "SFX"
+    local parts = { channel }
+    for _, at in ipairs(keys) do parts[#parts + 1] = at .. "=" .. wanted[at] end
+    return wanted, keys, channel, table.concat(parts, ",")
+end
+
+-- The sounds wanted, told to the game: only once you're logged in, never in
+-- a fight, and only when they changed.
+function P:ApplySounds()
+    if not (auraSounds.ready and self:CanSound()) then return end
+    local wanted, keys, channel, signature = SoundsWanted()
+    if signature == auraSounds.applied then return end -- no change, no calls
+    if InCombatLockdown() then
+        auraSounds.pending = true
+        SoundsLater()
+        return
+    end
+    auraSounds.pending, auraSounds.applied = false, signature
+    LetGo() -- every one of ours goes first
+    auraSounds.refused, auraSounds.error = 0, nil
+    local api = C_UnitAuras
+    local trigger = Enum and Enum.UnitAuraSoundTrigger and Enum.UnitAuraSoundTrigger.Added or 0
+    local ids = {}
+    for _, at in ipairs(keys) do
+        local unit, spell = at:match("^(%a+):(%d+)$")
+        local file = self.SOUND_FILES[wanted[at]]
+        if unit and file then
+            local ok, id = pcall(api.AddAuraSound, trigger, { unitToken = unit, spellID = tonumber(spell), soundFileID = file,
+                outputChannel = channel, throttleSeconds = 1 })
+            if ok and type(id) == "number" then
+                auraSounds.live[at], ids[#ids + 1] = id, id
+            else
+                local why = ok and "no id" or tostring(id)
+                auraSounds.refused, auraSounds.error = auraSounds.refused + 1, auraSounds.error or why
+            end
+        end
+    end
+    table.sort(ids)
+    ns.SaveAuraSounds(ids)
+    if #ids > 0 then Watch():RegisterEvent("PLAYER_LOGOUT") end -- let go of as you log out or reload
+end
+
+-- An owner's sounds ("unit:spellID" -> sound key; none: an empty table).
+function P:SetSounds(owner, wanted)
+    auraSounds.owners[owner] = wanted
+    self:ApplySounds()
+end
+
+-- Logged in: the sounds wanted so far are told to the game.
+function P:SoundsReady()
+    auraSounds.ready = true
+    self:ApplySounds()
+end
+
+-- The sounds made last session (Core.lua's saved IDs), let go of as the
+-- addon loads, before it makes any: the game may still hold them after a reload.
+function P:DropSavedSounds(ids)
+    if type(ids) ~= "table" or not self:CanSound() then return end
+    for _, id in ipairs(ids) do
+        if type(id) == "number" then
+            pcall(C_UnitAuras.RemoveAuraSound, id)
+        end
+    end
+end
+
+-- One line for /fecp debug: how many the game took and refused (and the
+-- first why), how many are wanted, whether the game can, a change waiting
+-- for a fight to end, and the channel. In English, as the rest of the report.
+function P:SoundReport()
+    local on = 0
+    for _ in pairs(auraSounds.live) do on = on + 1 end
+    local procsWanted = 0
+    for _ in pairs(auraSounds.owners.procs or {}) do procsWanted = procsWanted + 1 end
+    return ("Aura sounds: %d on, %d refused%s | wanted: procs %d | game can %s | waiting %s | channel %s"):format(on,
+        auraSounds.refused, auraSounds.error and (" (first error " .. auraSounds.error .. ")") or "", procsWanted,
+        tostring(self:CanSound()), tostring(auraSounds.pending == true), ns.Get("pulseMaster") and "Master" or "SFX")
+end
+
 -- Procs ------------------------------------------------------------------------------------
 -- A pulse the moment a proc's buff lands. Your buffs are secret in a fight
 -- and the addon never reads one, so the game does the work: Blizzard's
@@ -729,8 +884,10 @@ end
 -- replaced while up, it doesn't pulse again. One already up would pulse
 -- again whenever the container looks at all your buffs afresh, so those
 -- moments are hushed (Hush, below). Used up before the pulse ends, its icon
--- goes and the pulse with it. No sound and no turns with the cooldowns: the
--- addon never hears one land. The look is made only as a slot is added (Add
+-- goes and the pulse with it. No turns with the cooldowns: the addon never
+-- hears one land. With Sound on procs, each ticked proc's style's sound is
+-- the game's to play too, as it lands (ProcSounds, and Aura sounds above),
+-- none for a style set to None. The look is made only as a slot is added (Add
 -- and Guard), nothing of the addon's runs as the game plays it (no
 -- scripts), and nothing is written on the game's icons or container; of the
 -- container only its see-through changes (Hush). A change made in a fight
@@ -1041,23 +1198,39 @@ local function Assign(wanted)
     PlaceProcs()
 end
 
+-- Sound on procs: each ticked proc's style's sound (none for a style set to None), for each of its buff's spell IDs, on you.
+local function ProcSounds(wanted)
+    local sounds = {}
+    if ns.Get("pulseProcSound") ~= true or not P:CanSound() then return sounds end
+    for _, entry in ipairs(wanted) do
+        local file = P.SOUND_FILES[P:Sound(entry.style)]
+        if file then
+            for _, id in ipairs(entry.ids) do sounds["player:" .. id] = P:Sound(entry.style) end
+        end
+    end
+    return sounds
+end
+
 -- The procs ticked, told to the game (none while proc pulses are off, or
--- the pulse runs in Forever Enhanced Cooldown Manager). Never in a fight:
--- then it waits for it to end. Nothing is made until a proc is ticked; a
--- failure is reported once, and proc pulses stop for the session.
+-- the pulse runs in Forever Enhanced Cooldown Manager), and their sounds
+-- with Sound on procs (Aura sounds), apart from the pulses, so a failure of
+-- theirs doesn't stop the sounds. Never in a fight: then it waits for it to
+-- end. Nothing is made until a proc is ticked; a failure is reported once,
+-- and proc pulses stop for the session.
 function P:ApplyProcs()
     if InCombatLockdown() then
         procs.pending = true
         return
     end
     procs.pending = nil
-    if procs.error then return end
     local wanted = {}
     if self:ProcsOn() then
         for _, entry in ipairs(self:Procs()) do
             if entry.on then wanted[#wanted + 1] = entry end
         end
     end
+    self:SetSounds("procs", ProcSounds(wanted))
+    if procs.error then return end
     if not procs.container and #wanted == 0 then return end
     local ok, err = pcall(Assign, wanted)
     if not ok then
@@ -1116,8 +1289,9 @@ function P:Report(Add)
     Add(("Quick %d at %.1fs, %s; Long %d at %.1fs, %s; master %s; items %s"):format(self:Size("quick"), self:Seconds("quick"),
         self:Sound("quick"), self:Size("long"), self:Seconds("long"), self:Sound("long"), tostring(ns.Get("pulseMaster")),
         tostring(ns.Get("pulseItems"))))
-    -- The procs: what the game took, and what it keeps secret.
+    -- The procs: what the game took, and what it keeps secret; then the sounds it plays as they land.
     self:ProcReport(Add)
+    Add(self:SoundReport())
     Add("Last error: " .. tostring(self.lastError or "none"))
 end
 

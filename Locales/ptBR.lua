@@ -134,12 +134,16 @@ ns.LOCALES.ptBR = {
     ["Your trinkets, potions, healthstones and other items with a use in your bags. Only ones with a cooldown pulse."]
         = "Seus berloques, poções, pedras de vida e outros itens usáveis nas bolsas. Só pulsam os que têm tempo de recarga.",
     ["Procs too"] = "Procs também",
-    ["Your class's procs, like Clearcasting or Missile Barrage: a pulse the moment one lands, in a fight too. Procs pulse without a sound."]
-        = "Os procs da sua classe, como Clarividência ou Barragem de Mísseis: um pulso assim que um deles surge, também em combate. Procs pulsam sem som.",
+    ["Your class's procs, like Clearcasting or Missile Barrage: a pulse the moment one lands, in a fight too."]
+        = "Os procs da sua classe, como Clarividência ou Barragem de Mísseis: um pulso assim que um deles surge, também em combate.",
     ["Your game can't show proc pulses."] = "Seu jogo não consegue mostrar pulsos de procs.",
     ["Early resets too"] = "Reinícios também",
     ["A pulse when a talent brings a cooldown back early, like a reset after a parry or dodge."]
         = "Um pulso quando um talento devolve uma recarga mais cedo, como um reinício após aparar ou esquivar.",
+    ["Sound on procs"] = "Som nos procs",
+    ["Your game can't play proc sounds."] = "Seu jogo não consegue tocar sons de procs.",
+    ["Each ticked proc plays its style's sound as it lands, in a fight too. Pick each style's sound under Edit above."]
+        = "Cada proc marcado toca o som do seu estilo assim que surge, também em combate. Escolha o som de cada estilo em Editar, acima.",
     ["Play at Master volume"] = "Tocar no volume geral",
     ["Plays the sound at your Master volume, so you hear it with Sound Effects down or off. Your sound settings don't change."]
         = "Toca o som no volume geral, para você ouvir mesmo com os efeitos sonoros baixos ou desligados. Suas configurações de som não mudam.",
@@ -149,8 +153,7 @@ ns.LOCALES.ptBR = {
     ["Untick to leave %s out."] = "Desmarque para deixar %s de fora.",
     ["Tick to pulse when %s is ready."] = "Marque para pulsar quando a recarga de %s terminar.",
     ["Tick to pulse when %s lands."] = "Marque para pulsar assim que %s surgir.",
-    ["Each style has its own size and time, set under Edit above. Procs pulse without a sound."]
-        = "Cada estilo tem tamanho e duração próprios, ajustados em Editar, acima. Procs pulsam sem som.",
+    ["Procs play their sound only with Sound on procs ticked."] = "Sem Som nos procs, os procs ficam mudos.",
     ["Procs"] = "Procs",
     ["%s pulses %s."] = "%s: pulso %s.",
     ["Once ticked, %s pulses %s."] = "Se você marcar %s, o pulso será %s.",
@@ -399,6 +402,8 @@ ns.LOCALES.ptBR = {
         = "Procs adicionados ao pulso de recarga.",
     ["Early resets can pulse, like Improved Stormstrike after a parry."]
         = "Reinícios antecipados podem pulsar, como Improved Stormstrike após um aparo.",
+    ["Sound on procs: proc pulses can play your pulse sound."]
+        = "Som nos procs: os pulsos de procs podem tocar o seu som de pulso.",
     ["Options no longer say experimental."]
         = "As opções não dizem mais experimental.",
     ["The pulse no longer goes off again and again in a fight for a spell that's already ready."]

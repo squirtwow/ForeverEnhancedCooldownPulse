@@ -216,6 +216,37 @@ test('the proc pulses hand the game an animation with no scripts, and never set 
   assert.match(pulse, /elseif event == "PLAYER_REGEN_ENABLED" then\r?\n\s+(--[^\n]*\r?\n\s+)?if procs\.pending then P:ApplyProcs\(\) end/);
 });
 
+// The sounds the game plays as a proc lands (Pulse.lua's Aura sounds): the
+// game's aura sound calls only in Pulse.lua, each through pcall; a sound is
+// added in one place, in P:ApplySounds, only after it has checked for a
+// fight (one then waits for it to end); all let go of as you log out or
+// reload; and never the old private-aura call.
+test('aura sounds: told the game from Pulse.lua only, out of a fight, through pcall', async () => {
+  const files = await addonCode();
+  const using = files.filter(({ code }) => /AddAuraSound|RemoveAuraSound/.test(code)).map(({ name }) => name);
+  assert.deepEqual(using, ['Pulse.lua'], 'only the pulse asks the game for aura sounds');
+  assert.deepEqual(files.filter(({ source }) => /AddPrivateAuraAppliedSound/.test(source)).map(({ name }) => name), [],
+    'never the old private-aura sound');
+  const pulse = noComments(await read('Pulse.lua'));
+  assert.equal(count(pulse, /AddAuraSound/g), 2, 'asked whether the game has it, and called once');
+  assert.equal(count(pulse, /pcall\(api\.AddAuraSound, /g), 1, 'added once, through pcall');
+  assert.deepEqual(pulse.match(/[\w.]*RemoveAuraSound\b[^,)\n]*/g).sort(),
+    ['C_UnitAuras.RemoveAuraSound', 'api.RemoveAuraSound', 'api.RemoveAuraSound'].sort(), 'asked whether it has it, and removed twice');
+  assert.equal(count(pulse, /pcall\((api|C_UnitAuras)\.RemoveAuraSound, /g), 2, 'each removal through pcall');
+  const apply = pulse.slice(pulse.indexOf('function P:ApplySounds()'), pulse.indexOf('function P:SetSounds('));
+  assert.ok(apply.length > 0, 'P:ApplySounds found');
+  const guard = apply.search(/if InCombatLockdown\(\) then\r?\n\s+auraSounds\.pending = true\r?\n\s+SoundsLater\(\)\r?\n\s+return\r?\n\s+end/);
+  assert.ok(guard > 0 && guard < apply.indexOf('pcall(api.AddAuraSound'), 'a fight checked first, the change left waiting');
+  assert.ok(apply.indexOf('LetGo(') > guard, 'and before anything is removed');
+  // Removed (LetGo) only from P:ApplySounds and as you log out or reload.
+  assert.equal(count(pulse, /\bLetGo\(/g), 3, 'LetGo made once, called from two places');
+  assert.match(pulse, /if event == "PLAYER_LOGOUT" then return LetGo\(/, 'all let go of as you log out or reload');
+  assert.match(apply, /if not \(auraSounds\.ready and self:CanSound\(\)\) then return end/, 'nothing before you log in, nor without the game\'s');
+  // Only the calls the pulse needs of C_UnitAuras.
+  assert.deepEqual([...new Set(pulse.match(/C_UnitAuras\.\w+/g))].sort(), ['C_UnitAuras.RemoveAuraSound']);
+  assert.deepEqual([...new Set(pulse.match(/\bapi\.\w+/g))].sort(), ['api.AddAuraSound', 'api.RemoveAuraSound']);
+});
+
 // P.PROCS's block, from "P.PROCS = {" to its closing brace: each line
 // trimmed, comments already gone.
 function procsBlock(text) {

@@ -15,7 +15,8 @@
 -- Manager loaded or not, with its saved settings (H.Manager). For the proc
 -- pulses: the game's aura container (H.Container), your buffs landing and
 -- going (H.Auras), its full refreshes (H.Refresh), animations, the
--- interface hidden and back (H.Interface), and the procs' names. The game's
+-- interface hidden and back (H.Interface), the procs' names, and the sounds
+-- the game plays as an aura lands (H.auraSounds). The game's
 -- language is H.locale (GetLocale), and text is measured by its script
 -- (Chinese wide, Cyrillic a little wider than English; see Letters).
 local H = {}
@@ -767,7 +768,8 @@ function H.Environment()
     _G.GetRealmName = function() return H.character.realm end
     -- The spellbook.
     H.Book()
-    _G.Enum = { SpellBookSpellBank = { Player = 0 }, SpellBookItemType = { Spell = 1, FutureSpell = 2, Flyout = 3 } }
+    _G.Enum = { SpellBookSpellBank = { Player = 0 }, SpellBookItemType = { Spell = 1, FutureSpell = 2, Flyout = 3 },
+        UnitAuraSoundTrigger = { Added = 0, ApplicationsIncreased = 1, Removed = 2 } }
     _G.C_SpellBook = {
         GetNumSpellBookSkillLines = function() return #H.book end,
         GetSpellBookSkillLineInfo = function(line)
@@ -807,6 +809,36 @@ function H.Environment()
         if H.spellAurasSecret[id] == nil then return false end
         return Typed("boolean", H.spellAurasSecret[id])
     end }
+    -- The sounds the game plays itself as an aura lands (Sound on procs):
+    -- each call kept in H.auraSounds, "add <unit> <spellID> <file> <channel>
+    -- <throttle>" or "remove <id>", " fight" after one made in a fight. Each
+    -- add is checked as the game checks it and given the next ID;
+    -- H.auraSoundRefuse (text) makes the game refuse every add with it.
+    H.auraSounds, H.auraSoundRefuse, H.nextAuraSound = {}, nil, 0
+    local function Fight() return H.lockdown and " fight" or "" end
+    _G.C_UnitAuras = {
+        AddAuraSound = function(trigger, info)
+            assert(trigger == 0, "the Added trigger")
+            assert(rawtype(info) == "table" and rawtype(info.unitToken) == "string" and rawtype(info.spellID) == "number",
+                "a unit and a spell ID")
+            assert(info.soundFileName == nil and rawtype(info.soundFileID) == "number", "a sound file ID")
+            assert(info.outputChannel == nil or rawtype(info.outputChannel) == "string", "a channel by name")
+            local throttle = info.throttleSeconds
+            assert(throttle == nil or (rawtype(throttle) == "number" and throttle >= 0 and throttle <= 5), "a throttle from 0 to 5 seconds")
+            if H.auraSoundRefuse then
+                H.auraSounds[#H.auraSounds + 1] = "refused " .. info.unitToken .. " " .. info.spellID .. Fight()
+                error(H.auraSoundRefuse)
+            end
+            H.nextAuraSound = H.nextAuraSound + 1
+            H.auraSounds[#H.auraSounds + 1] = ("add %s %d %d %s %s%s"):format(info.unitToken, info.spellID, info.soundFileID,
+                tostring(info.outputChannel), tostring(throttle), Fight())
+            return H.nextAuraSound
+        end,
+        RemoveAuraSound = function(id)
+            assert(rawtype(id) == "number", "an aura sound's ID")
+            H.auraSounds[#H.auraSounds + 1] = "remove " .. id .. Fight()
+        end,
+    }
     -- Blizzard's secure aura containers (H.Container): there unless a test
     -- takes them away, each made kept in H.containers.
     _G.CustomAuraContainerSlotDefaultOptions = {}

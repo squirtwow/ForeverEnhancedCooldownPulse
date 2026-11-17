@@ -149,12 +149,16 @@ ns.LOCALES.esES = {
     ["Your trinkets, potions, healthstones and other items with a use in your bags. Only ones with a cooldown pulse."]
         = "Tus abalorios, pociones, piedras de salud y otros objetos usables de tus bolsas. Solo avisan los que tienen tiempo de reutilización.",
     ["Procs too"] = "También procs",
-    ["Your class's procs, like Clearcasting or Missile Barrage: a pulse the moment one lands, in a fight too. Procs pulse without a sound."]
-        = "Los procs de tu clase, como Libre lanzamiento o Tromba de misiles: un aviso en cuanto se activa uno, también en combate. Los procs avisan sin sonido.",
+    ["Your class's procs, like Clearcasting or Missile Barrage: a pulse the moment one lands, in a fight too."]
+        = "Los procs de tu clase, como Libre lanzamiento o Tromba de misiles: un aviso en cuanto se activa uno, también en combate.",
     ["Your game can't show proc pulses."] = "Tu juego no puede mostrar avisos de procs.",
     ["Early resets too"] = "También reinicios",
     ["A pulse when a talent brings a cooldown back early, like a reset after a parry or dodge."]
         = "Un pulso cuando un talento recupera antes un tiempo de reutilización, como un reinicio tras parar o esquivar.",
+    ["Sound on procs"] = "Sonido de procs",
+    ["Your game can't play proc sounds."] = "Tu juego no puede reproducir sonidos de procs.",
+    ["Each ticked proc plays its style's sound as it lands, in a fight too. Pick each style's sound under Edit above."]
+        = "Cada proc marcado reproduce el sonido de su estilo en cuanto se activa, también en combate. Elige el sonido de cada estilo en Editar, arriba.",
     ["Play at Master volume"] = "Sonar con el volumen general",
     ["Plays the sound at your Master volume, so you hear it with Sound Effects down or off. Your sound settings don't change."]
         = "Reproduce el sonido con tu volumen general, para oírlo aunque los efectos de sonido estén bajos o desactivados. Tus opciones de sonido no cambian.",
@@ -164,14 +168,13 @@ ns.LOCALES.esES = {
     ["Untick to leave %s out."] = "Desmarca para dejar fuera %s.",
     ["Tick to pulse when %s is ready."] = "Marca para avisar cuando %s esté disponible.",
     ["Tick to pulse when %s lands."] = "Marca para avisar cuando se active %s.",
-    ["Each style has its own size and time, set under Edit above. Procs pulse without a sound."]
-        = "Tamaño y duración de cada estilo: en Editar, arriba. Los procs avisan sin sonido.",
+    ["Procs play their sound only with Sound on procs ticked."] = "Sin Sonido de procs, los procs no suenan.",
     ["Procs"] = "Procs",
     ["%s pulses %s."] = "%s usa el aviso %s.",
     ["Once ticked, %s pulses %s."] = "Al marcar la casilla, %s usará el aviso %s.",
     ["Click for %s."] = "Haz clic para elegir %s.",
     ["Each style has its own size, time and sound, set under Edit above."]
-        = "Cada estilo tiene su propio tamaño, duración y sonido, que se ajustan en Editar, arriba.",
+        = "Tamaño, duración y sonido de cada estilo: en Editar, arriba.",
     ["Spells"] = "Hechizos",
     ["Items"] = "Objetos",
     ["trinket"] = "abalorio",
@@ -415,6 +418,8 @@ ns.LOCALES.esES = {
         = "Añadidos los procs al aviso de reutilización.",
     ["Early resets can pulse, like Improved Stormstrike after a parry."]
         = "Los reinicios anticipados pueden dar aviso, como Improved Stormstrike tras una parada.",
+    ["Sound on procs: proc pulses can play your pulse sound."]
+        = "Sonido de procs: los avisos de procs pueden reproducir tu sonido de aviso.",
     ["Options no longer say experimental."]
         = "Las opciones ya no dicen experimental.",
     ["The pulse no longer goes off again and again in a fight for a spell that's already ready."]

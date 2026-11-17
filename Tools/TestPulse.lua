@@ -117,7 +117,8 @@ do
     Equal(Rows(page), SPELLS, "every spell you know with a cooldown of its own, by name, each unticked and Quick, with its cooldown;"
         .. " Moonfire and Attack (none), a passive and a spell not learned left out; no potions you don't carry")
     Equal(S[page.about].text, "tick the ones you want to pulse, then pick Quick or Long for each", "the list says what to do")
-    local controls = { page.master, page.previewButton, page.move, page.reset, page.shadow, page.items, page.procs, page.volume }
+    local controls = { page.master, page.previewButton, page.move, page.reset, page.shadow, page.items, page.procs, page.volume,
+        page.procSound }
     for _, pills in ipairs({ page.edit, page.sound, page.border }) do
         for _, button in ipairs(pills.buttons) do controls[#controls + 1] = button end
     end
@@ -127,7 +128,7 @@ do
         local hint = Note(control)
         if type(hint) == "string" and #hint > 10 and hint:find("\226\128\148") == nil then plain = plain + 1 end
     end
-    Equal(plain .. "/" .. #controls, "22/22", "every control says what it does on hover, no dashes")
+    Equal(plain .. "/" .. #controls, "23/23", "every control says what it does on hover, no dashes")
     -- See-through: 80% leaves a tenth, and past it, fainter still.
     local shown = {}
     for _, see in ipairs({ 0, 40, 80, 85, 90 }) do
@@ -827,7 +828,8 @@ do
     end
     for i, style in ipairs({ "Quick", "Long" }) do
         page.edit.buttons[i]:Click()
-        Equal(Laid(), "16 |  | ", style .. " under Edit: every tick, label, choice and slider inside the options, none on another")
+        Equal(Laid(), "17 |  | ", style .. " under Edit: every tick (Sound on procs too), label, choice and slider inside the options,"
+            .. " none on another")
     end
     page.edit.buttons[1]:Click()
     Equal(H.Problems2D(page), "", "every piece of the page inside it, none on another")
@@ -1571,7 +1573,7 @@ do
     Equal(tostring(mns.Get("pulseProcs")) .. " " .. tostring(mpage.procs.checked) .. " " .. tostring(mpage.procs.usable) .. " " .. #H.containers
         .. " " .. tostring(Rows(mpage):find("PROCS", 1, true)) .. " | " .. S[mpage.procs.text].text .. " | " .. Note(mpage.procs),
         "false false true 0 nil | Procs too | Your class's procs, like Clearcasting or Missile Barrage: a pulse the moment one lands, in a"
-        .. " fight too. Procs pulse without a sound.",
+        .. " fight too.",
         "off by default: its tick free, saying what it does, not marked experimental; no container made, no Procs in the list")
     Equal(Spot(mpage.items) .. " | " .. Spot(mpage.procs) .. " | " .. Spot(mpage.volume) .. " | " .. S[mpage.options].height .. " "
         .. S[mpage.look].height, "TOPLEFT 312 -94 | TOPLEFT 312 -116 | TOPLEFT 312 -138 | 156 130",
@@ -1588,8 +1590,8 @@ do
     local barrage = RowFor(mpage, "proc:400589")
     Equal(S[barrage.long].text .. "| " .. Note(barrage.check) .. " | " .. Note(barrage.style.buttons[2]),
         "| Tick to pulse when Missile Barrage lands. | Once ticked, Missile Barrage pulses Quick. Click for Long. Each style has"
-        .. " its own size and time, set under Edit above. Procs pulse without a sound.",
-        "no cooldown beside it; its tick and switch say what they do, a proc's style without a sound")
+        .. " its own size, time and sound, set under Edit above. Procs play their sound only with Sound on procs ticked.",
+        "no cooldown beside it; its tick and switch say what they do, a proc's sound only with Sound on procs")
 
     -- Ticked: the container, made now, and slot p1 told Missile Barrage's two buffs.
     barrage.check:Click()
@@ -1869,6 +1871,250 @@ do
         "reloaded with Missile Barrage up: shown at once, unseen, for the quiet and a Quick pulse, then seen again")
     H.character.class, H.character.classFile = "Druid", "DRUID"
     Equal(H.Problems(), "", "no errors from proc pulses")
+end
+
+-- Sound on procs: the game plays each ticked proc's sound as it lands ------------------------------
+-- Off until it's ticked. Each ticked proc's style's sound (none for a style
+-- set to None) is told to the game for each of its buff's IDs, on you
+-- (C_UnitAuras.AddAuraSound, a file for each sound): only once you're logged
+-- in, never in a fight, only when what's wanted changed (every one of the
+-- addon's removed first, then the new ones added), every call through
+-- pcall. The IDs the game gives are saved, and let go of as the addon loads
+-- next time. The mock game checks each call as the game does (Harness.lua
+-- H.auraSounds). The same checks as Forever Enhanced Cooldown Manager's.
+
+do
+    local MANAGER = "ForeverEnhancedCooldownManager"
+    -- A mage logged in with these settings, the window open on the page.
+    -- how.api false: a game without aura sounds; how.bare: without the
+    -- containers; how.manager: Forever Enhanced Cooldown Manager on the
+    -- link first; how.beforeLogin: loaded, not logged in yet.
+    local function Mage(saved, how)
+        how = how or {}
+        H.Environment()
+        if how.bare then _G.CustomAuraContainerSlotDefaultOptions = nil end
+        if how.api == false then _G.C_UnitAuras = nil end
+        H.character.class, H.character.classFile = "Mage", "MAGE"
+        if how.manager then
+            assert(loadfile("Link.lua"))(MANAGER, {})
+            ForeverPulseLink:Register(MANAGER, { name = "Forever Enhanced Cooldown Manager", rank = 2,
+                IsOn = function() return how.manager.on end, Refresh = function() end })
+            H.addOns[MANAGER] = true
+        end
+        local mns = H.Load(saved, how.beforeLogin)
+        if how.beforeLogin then return mns end
+        H.Tick(mns)
+        H.clock = H.clock + 5
+        mns.ShowWindow()
+        FECPFrame:Select("pulse")
+        return mns, FECPFrame.pages.pulse
+    end
+    -- Procs too on; Missile Barrage ticked Long, Long's sound Bell;
+    -- Clearcasting ticked Quick, Quick's sound None. extra: more settings.
+    local function Mine(extra)
+        local saved = { notesSeen = "dev", helpSeen = true, pulseProcs = true, pulseLongSound = "bell", chars = { [H.character.guid] = "Mine" },
+            profiles = { Mine = { pulsePick = { ["proc:400589"] = true, ["proc:12536"] = true }, pulseStyle = { ["proc:400589"] = "long" } } } }
+        for key, value in pairs(extra or {}) do saved[key] = value end
+        return saved
+    end
+    -- The game's aura sound calls after a mark: the removes (by ID: the
+    -- order they go in doesn't matter), then the rest in order, and a
+    -- remove after an add said so.
+    local function Calls(mark)
+        local removes, rest, late = {}, {}, false
+        for i = (mark or 0) + 1, #H.auraSounds do
+            local call = H.auraSounds[i]
+            if call:find("^remove") then
+                removes[#removes + 1] = call
+                if #rest > 0 then late = true end
+            else
+                rest[#rest + 1] = call
+            end
+        end
+        table.sort(removes, function(a, b) return tonumber(a:match("%d+")) < tonumber(b:match("%d+")) end)
+        for _, call in ipairs(rest) do removes[#removes + 1] = call end
+        return table.concat(removes, ", ") .. (late and " (a remove after an add)" or "")
+    end
+    local function Line(lns) return tostring(lns.DebugReport():match("Aura sounds:[^\n]*")) end
+    local function Spot(control) local p = S[control].points[1]; return p[1] .. " " .. p[2] .. " " .. p[3] end
+    local function Kept() return table.concat(ForeverEnhancedCooldownPulseDB.auraSoundIDs or { "none" }, ",") end
+    local function Fought()
+        for _, call in ipairs(H.auraSounds) do
+            if call:find("fight") then return call end
+        end
+        return "none"
+    end
+
+    -- Off by default: its tick free, under Early resets too; procs ticked, but nothing told the game.
+    local mns, mpage = Mage(Mine())
+    local MP = mns.Pulse
+    Equal(tostring(mns.Get("pulseProcSound")) .. " " .. tostring(mpage.procSound.checked) .. " " .. tostring(mpage.procSound.usable) .. " | "
+        .. S[mpage.procSound.text].text .. " | " .. Note(mpage.procSound) .. " | " .. Spot(mpage.resets) .. " | " .. Spot(mpage.procSound) .. " | "
+        .. Calls() .. " | " .. Kept() .. " | " .. Line(mns),
+        "false false true | Sound on procs | Each ticked proc plays its style's sound as it lands, in a fight too. Pick each style's sound under"
+        .. " Edit above. | TOPLEFT 0 -116 | TOPLEFT 0 -138 | " .. " | none | Aura sounds: 0 on, 0 refused | wanted: procs 0 | game can true"
+        .. " | waiting false | channel SFX",
+        "off by default: its tick free under Early resets too, saying what it does, level with Master volume; nothing told the game")
+    Equal(Spot(mpage.items) .. " | " .. Spot(mpage.procs) .. " | " .. Spot(mpage.volume) .. " | " .. S[mpage.options].height,
+        "TOPLEFT 312 -94 | TOPLEFT 312 -116 | TOPLEFT 312 -138 | 156", "the right-hand column and the options' height as they were")
+
+    -- Ticked: Missile Barrage's two buffs, each with Long's Bell as its file; Clearcasting's Quick plays None: nothing.
+    mpage.procSound:Click()
+    local barrage = RowFor(mpage, "proc:400589")
+    Equal(tostring(mns.Get("pulseProcSound")) .. " | " .. Calls() .. " | " .. Kept() .. " | " .. Line(mns) .. " | " .. Note(barrage.style.buttons[1]),
+        "true | add player 1326083 7466126 SFX 1, add player 400589 7466126 SFX 1 | 1,2 | Aura sounds: 2 on, 0 refused | wanted: procs 2"
+        .. " | game can true | waiting false | channel SFX | Missile Barrage pulses Long. Click for Quick. Each style has its own size, time"
+        .. " and sound, set under Edit above.",
+        "ticked: each of Missile Barrage's buffs told the game on you, Bell's file, Sound Effects, a second apart at most; Clearcasting"
+        .. " (None) not; the IDs saved; the row no longer says it needs the tick")
+    Equal(tostring(ForeverEnhancedCooldownPulseDB.devSoundLog) .. " " .. tostring(mns.DevSoundLog), "nil nil", "no dev log in a release")
+
+    -- Nothing changed: nothing told the game again.
+    local mark = #H.auraSounds
+    MP:Apply()
+    Fire("PLAYER_ENTERING_WORLD")
+    H.Tick(mns)
+    FECPFrame:Refresh()
+    Equal(Calls(mark), "", "applied again, a loading screen, a redraw: no calls with nothing new")
+
+    -- Quick's sound picked: Clearcasting too. Every one of ours goes first, then all three are added.
+    mark = #H.auraSounds
+    mpage.sound.buttons[3]:Click()
+    Equal(mns.Get("pulseSound") .. " | " .. Calls(mark) .. " | " .. Kept(), "chime | remove 1, remove 2, add player 12536 7466072 SFX 1,"
+        .. " add player 1326083 7466126 SFX 1, add player 400589 7466126 SFX 1 | 3,4,5",
+        "Quick's sound Chime: each of ours removed, then Clearcasting with Chime's file and Missile Barrage again")
+
+    -- Play at Master volume: told again on Master, and back.
+    mark = #H.auraSounds
+    mpage.volume:Click()
+    local master = Calls(mark) .. " | " .. Line(mns):match("channel %a+")
+    mark = #H.auraSounds
+    mpage.volume:Click()
+    Equal(master .. " || " .. Calls(mark), "remove 3, remove 4, remove 5, add player 12536 7466072 Master 1, add player 1326083 7466126 Master 1,"
+        .. " add player 400589 7466126 Master 1 | channel Master || remove 6, remove 7, remove 8, add player 12536 7466072 SFX 1,"
+        .. " add player 1326083 7466126 SFX 1, add player 400589 7466126 SFX 1", "Master volume: every sound on Master, then back on Sound Effects")
+
+    -- In a fight: nothing told the game. A change on the page waits with the
+    -- procs, and one asked of the sounds themselves waits on its own; both
+    -- told as the fight ends.
+    H.Combat(true)
+    mark = #H.auraSounds
+    mpage.sound.buttons[1]:Click()
+    local fight = Calls(mark) .. " | " .. tostring(mns.DebugReport():match("pending %a+"))
+    H.Combat(false)
+    Equal(fight .. " || " .. Calls(mark), " | pending true || remove 9, remove 10, remove 11, add player 1326083 7466126 SFX 1,"
+        .. " add player 400589 7466126 SFX 1", "Quick's sound back to None in a fight: nothing told the game until it ends, then Clearcasting's gone")
+    H.Combat(true)
+    mark = #H.auraSounds
+    MP:SetSounds("procs", { ["player:12536"] = "gold" })
+    fight = Calls(mark) .. " | " .. Line(mns):match("waiting %a+")
+    H.Combat(false)
+    local ended = Calls(mark)
+    mark = #H.auraSounds
+    MP:Apply()
+    Equal(fight .. " || " .. ended .. " || " .. Calls(mark) .. " | " .. Fought(), " | waiting true"
+        .. " || remove 12, remove 13, add player 12536 7467072 SFX 1 || remove 14, add player 1326083 7466126 SFX 1, add player 400589 7466126"
+        .. " SFX 1 | none", "sounds asked for in a fight wait for its end, then told; never a call in a fight")
+
+    -- Missile Barrage unticked: its two go and nothing's left; ticked again: back.
+    mark = #H.auraSounds
+    RowFor(mpage, "proc:400589").check:Click()
+    local gone = Calls(mark) .. " | " .. Kept() .. " | " .. Line(mns):match("%d+ on")
+    mark = #H.auraSounds
+    RowFor(mpage, "proc:400589").check:Click()
+    Equal(gone .. " || " .. Calls(mark) .. " | " .. Kept(), "remove 15, remove 16 | none | 0 on || add player 1326083 7466126 SFX 1,"
+        .. " add player 400589 7466126 SFX 1 | 17,18", "unticked: its sounds go, none kept; ticked again: back")
+
+    -- Procs too unticked: none; ticked again: back.
+    mark = #H.auraSounds
+    mpage.procs:Click()
+    local off = Calls(mark)
+    mark = #H.auraSounds
+    mpage.procs:Click()
+    Equal(off .. " || " .. Calls(mark), "remove 17, remove 18 || add player 1326083 7466126 SFX 1, add player 400589 7466126 SFX 1",
+        "Procs too unticked: the sounds go with the pulses; ticked again: back")
+
+    -- The game refusing them: counted, the first why in the debug line,
+    -- nothing kept or printed, and not asked again until something changes.
+    H.auraSoundRefuse = "blocked"
+    mark = #H.auraSounds
+    mpage.volume:Click()
+    local refused = Calls(mark) .. " | " .. Kept() .. " | " .. #H.printed .. " | "
+        .. (Line(mns):gsub("%(first error [^)]*blocked%)", "(first error ...blocked)"))
+    mark = #H.auraSounds
+    MP:Apply()
+    Fire("PLAYER_ENTERING_WORLD")
+    H.Tick(mns)
+    local again = Calls(mark)
+    H.auraSoundRefuse = nil
+    mpage.volume:Click()
+    Equal(refused .. " || " .. again .. " || " .. Calls(mark) .. " | " .. Line(mns), "remove 19, remove 20, refused player 1326083,"
+        .. " refused player 400589 | none | 0 | Aura sounds: 0 on, 2 refused (first error ...blocked) | wanted: procs 2 | game can true"
+        .. " | waiting false | channel Master ||  || add player 1326083 7466126 SFX 1, add player 400589 7466126 SFX 1 | Aura sounds: 2 on,"
+        .. " 0 refused | wanted: procs 2 | game can true | waiting false | channel SFX",
+        "refused: counted with the first why, nothing kept, no error; not asked again for the same; the next change tries again")
+    Equal(H.Problems(), "", "no errors from proc sounds")
+
+    -- Forever Enhanced Cooldown Manager running the pulse: none here; turned
+    -- off there, this one's told the game; on there again, they go.
+    local manager = { on = true }
+    local fns = Mage(Mine({ pulseProcSound = true }), { manager = manager })
+    local there = Calls() .. " | " .. Line(fns):match("wanted: procs %d+")
+    manager.on = false
+    ForeverPulseLink:Notify(MANAGER)
+    local here = Calls()
+    mark = #H.auraSounds
+    manager.on = true
+    ForeverPulseLink:Notify(MANAGER)
+    Equal(there .. " || " .. here .. " || " .. Calls(mark) .. " | " .. Kept(), " | wanted: procs 0 || add player 1326083 7466126 SFX 1,"
+        .. " add player 400589 7466126 SFX 1 || remove 1, remove 2 | none",
+        "with its pulse on there: no sounds here; off there: here's told the game; on there again: they go")
+
+    -- A game without aura sounds, or without the containers: the tick greyed, saying why; nothing told, no errors.
+    local results = {}
+    for _, how in ipairs({ { api = false }, { bare = true } }) do
+        local gns, gpage = Mage(Mine({ pulseProcSound = true, auraSoundIDs = { 7 } }), how)
+        results[#results + 1] = tostring(gpage.procSound.checked) .. " " .. tostring(gpage.procSound.usable) .. " " .. Note(gpage.procSound)
+            .. " " .. #H.auraSounds .. " " .. Kept() .. " " .. Line(gns):match("game can %a+") .. " " .. #H.printed
+    end
+    Equal(table.concat(results, " | "), "true false Your game can't play proc sounds. 0 none game can false 0 | true false Your game can't"
+        .. " show proc pulses. 1 none game can true 0", "no aura sounds: greyed with why, nothing asked of the game; no containers:"
+        .. " greyed with why, no procs so no sounds (last session's let go)")
+    Equal(H.Problems(), "", "no errors without the game's aura sounds or containers")
+
+    -- Loaded with last session's IDs: let go of as it loads, before anything
+    -- is made; nothing made before you log in; a development build's log gone.
+    local saved = Mine({ pulseProcSound = true, auraSoundIDs = { 41, 42 }, devSoundLog = { "last session" } })
+    local lns = Mage(saved, { beforeLogin = true })
+    H.Tick(lns)
+    local before = Calls() .. " | " .. tostring(saved.auraSoundIDs) .. " | " .. tostring(saved.devSoundLog)
+    Fire("PLAYER_LOGIN")
+    Fire("PLAYER_ENTERING_WORLD")
+    H.Tick(lns)
+    Equal(before .. " || " .. Calls() .. " | " .. Kept(), "remove 41, remove 42 | nil | nil"
+        .. " || remove 41, remove 42, add player 1326083 7466126 SFX 1, add player 400589 7466126 SFX 1 | 1,2",
+        "last session's let go as it loads, none made until you log in, then this session's, kept; the old dev log gone")
+    -- Logging out or reloading: every one of them let go, so none outlives
+    -- the session if the addon isn't loaded next time; the saved IDs kept.
+    mark = #H.auraSounds
+    Fire("PLAYER_LOGOUT")
+    Equal(Calls(mark) .. " | " .. Kept() .. " | " .. tostring(saved.devSoundLog),
+        "remove 1, remove 2 | 1,2 | nil", "logging out or reloading: every one let go, the saved IDs kept for the next load, nothing logged")
+
+    -- Reloaded in a fight: nothing told the game until it ends.
+    lns = Mage(Mine({ pulseProcSound = true }), { beforeLogin = true })
+    H.lockdown = true
+    H.Tick(lns)
+    Fire("PLAYER_LOGIN")
+    Fire("PLAYER_ENTERING_WORLD")
+    H.Tick(lns)
+    local waited = Calls() .. " | " .. Line(lns):match("waiting %a+")
+    H.Combat(false)
+    Equal(waited .. " || " .. Calls() .. " | " .. Line(lns):match("waiting %a+") .. " | " .. Fought(), " | waiting true"
+        .. " || add player 1326083 7466126 SFX 1, add player 400589 7466126 SFX 1 | waiting false | none",
+        "reloaded in a fight: the sounds wait for it to end, then they're told")
+    H.character.class, H.character.classFile = "Druid", "DRUID"
+    Equal(H.Problems(), "", "no errors from proc sounds")
 end
 
 Equal(H.Problems(), "", "no errors")

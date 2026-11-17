@@ -13,6 +13,9 @@ own.
   rank, and new ones show as you learn them
 - Trinkets with a use, healthstones and potions (the best one you carry), and
   other items with a use in your bags
+- Procs too: your class's procs, like Clearcasting, pulse the moment they land,
+  and with Sound on procs they play their style's sound too (both off by
+  default)
 - Several at once take turns, so it never floods your screen
 - It never takes the mouse, and works in a fight
 

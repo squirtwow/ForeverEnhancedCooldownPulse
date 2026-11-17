@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.12
+
+### Added
+- Sound on procs: proc pulses can play your pulse sound.
+
 ## 1.0.11
 
 ### Added

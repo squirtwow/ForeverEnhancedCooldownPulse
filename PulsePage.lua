@@ -3,10 +3,11 @@
 -- runs, Link.lua), a live preview of a pulse on a small screen and up close,
 -- where it sits, how it looks and sounds in each of its two styles (Quick
 -- and Long), and every cooldown you have that can pulse, spells and items,
--- to tick, each one Quick or Long, and your class's procs with Procs too.
--- Pulse.lua does the work. Its words are in
--- the language showing (Locale.lua), the style, border and sound names
--- looked up as they show; spell and item names are the game's own.
+-- to tick, each one Quick or Long, and your class's procs with Procs too
+-- (and their sound with Sound on procs). Pulse.lua does the work. Its
+-- words are in the language showing (Locale.lua), the style, border and
+-- sound names looked up as they show; spell and item names are the game's
+-- own.
 local _, ns = ...
 local T, L = ns.Theme, ns.L
 
@@ -304,11 +305,17 @@ local function BuildOptions(window, page, inner)
     -- the game can't show them.
     page.procs = Tick(L["Procs too"], "pulseProcs", COLUMN, -116, function()
         if not P:CanProcs() then return L["Your game can't show proc pulses."] end
-        return L["Your class's procs, like Clearcasting or Missile Barrage: a pulse the moment one lands, in a fight too."
-            .. " Procs pulse without a sound."]
+        return L["Your class's procs, like Clearcasting or Missile Barrage: a pulse the moment one lands, in a fight too."]
     end)
     page.resets = Tick(L["Early resets too"], "pulseResets", 0, -116,
         L["A pulse when a talent brings a cooldown back early, like a reset after a parry or dodge."])
+    -- Each ticked proc's style's sound as it lands, played by the game
+    -- (Pulse.lua's Aura sounds); greyed while the game can't.
+    page.procSound = Tick(L["Sound on procs"], "pulseProcSound", 0, -138, function()
+        if not P:CanProcs() then return L["Your game can't show proc pulses."] end
+        if not P:CanSound() then return L["Your game can't play proc sounds."] end
+        return L["Each ticked proc plays its style's sound as it lands, in a fight too. Pick each style's sound under Edit above."]
+    end)
     page.volume = Tick(L["Play at Master volume"], "pulseMaster", COLUMN, -138,
         L["Plays the sound at your Master volume, so you hear it with Sound Effects down or off. Your sound settings don't change."])
     -- The right-hand column as one part, for the page's walkthrough: the look
@@ -380,7 +387,7 @@ local function BuildList(window, page, inner)
         end)
         row.style:SetPoint("RIGHT", -4, 0)
         -- Says how it pulses now (once ticked, if it isn't), and what this one
-        -- picks. A proc's style has no sound.
+        -- picks. A proc plays its style's sound only with Sound on procs.
         for _, button in ipairs(row.style.buttons) do
             window:Hint(button, function()
                 local name, now = row.name:GetText() or "", P:StyleOf(row.key)
@@ -388,7 +395,8 @@ local function BuildList(window, page, inner)
                     :format(name, StyleName(now))
                 local click = button.key ~= now and L["Click for %s."]:format(StyleName(button.key)) or nil
                 if row.proc then
-                    return ns.Join(said, click, L["Each style has its own size and time, set under Edit above. Procs pulse without a sound."])
+                    return ns.Join(said, click, L["Each style has its own size, time and sound, set under Edit above."],
+                        not ns.Get("pulseProcSound") and L["Procs play their sound only with Sound on procs ticked."] or nil)
                 end
                 return ns.Join(said, click, L["Each style has its own size, time and sound, set under Edit above."])
             end)
@@ -502,6 +510,8 @@ function ns.BuildPulsePage(window, page, width)
         self.procs:SetChecked(ns.Get("pulseProcs"))
         self.procs:SetUsable(P:CanProcs())
         self.resets:SetChecked(ns.Get("pulseResets"))
+        self.procSound:SetChecked(ns.Get("pulseProcSound"))
+        self.procSound:SetUsable(P:CanProcs() and P:CanSound())
         self.volume:SetChecked(ns.Get("pulseMaster"))
         self.previewButton:SetLabel(L["Preview %s"]:format(Editing()))
 
