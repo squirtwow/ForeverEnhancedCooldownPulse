@@ -14,6 +14,14 @@ local T, L = ns.Theme, ns.L
 -- needs its line in every file in Locales (Tools/TestLocale.mjs checks).
 ns.NOTES = {
     {
+        version = "1.0.13",
+        sections = {
+            { "Fixed", {
+                "Stormstrike's cooldown matches the game's new 8 seconds.",
+            } },
+        },
+    },
+    {
         version = "1.0.12",
         sections = {
             { "Added", {

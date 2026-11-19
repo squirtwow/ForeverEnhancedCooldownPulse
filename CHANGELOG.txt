@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.13
+
+### Fixed
+- Stormstrike's cooldown matches the game's new 8 seconds.
+
 ## 1.0.12
 
 ### Added

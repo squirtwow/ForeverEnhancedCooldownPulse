@@ -441,6 +441,8 @@ ns.LOCALES.deDE = {
         = "Frühe Resets können pulsieren, etwa Improved Stormstrike nach einem Parieren.",
     ["Sound on procs: proc pulses can play your pulse sound."]
         = "Klang bei Procs: Proc-Pulse können deinen Puls-Klang abspielen.",
+    ["Stormstrike's cooldown matches the game's new 8 seconds."]
+        = "Die Abklingzeit von Stormstrike passt jetzt zu den neuen 8 Sekunden des Spiels.",
     ["Options no longer say experimental."]
         = "Optionen sind nicht mehr als experimentell markiert.",
     ["The pulse no longer goes off again and again in a fight for a spell that's already ready."]

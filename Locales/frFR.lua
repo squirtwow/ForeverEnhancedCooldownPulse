@@ -419,6 +419,8 @@ ns.LOCALES.frFR = {
         = "Les remises à zéro anticipées peuvent pulser, comme Improved Stormstrike après une parade.",
     ["Sound on procs: proc pulses can play your pulse sound."]
         = "Son des procs : les pulsations des procs peuvent jouer votre son de pulsation.",
+    ["Stormstrike's cooldown matches the game's new 8 seconds."]
+        = "Le temps de recharge de Stormstrike suit les nouvelles 8 secondes du jeu.",
     ["Options no longer say experimental."]
         = "Les options ne sont plus marquées expérimentales.",
     ["The pulse no longer goes off again and again in a fight for a spell that's already ready."]

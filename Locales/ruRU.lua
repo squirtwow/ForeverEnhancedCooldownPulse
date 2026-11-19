@@ -406,6 +406,8 @@ ns.LOCALES.ruRU = {
         = "Ранние сбросы могут давать вспышку, например Improved Stormstrike после парирования.",
     ["Sound on procs: proc pulses can play your pulse sound."]
         = "Звук проков: вспышки проков могут проигрывать ваш звук вспышки.",
+    ["Stormstrike's cooldown matches the game's new 8 seconds."]
+        = "Время восстановления Stormstrike теперь совпадает с новыми 8 секундами в игре.",
     ["Options no longer say experimental."]
         = "Параметры больше не помечены как экспериментальные.",
     ["The pulse no longer goes off again and again in a fight for a spell that's already ready."]

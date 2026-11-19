@@ -420,6 +420,8 @@ ns.LOCALES.esES = {
         = "Los reinicios anticipados pueden dar aviso, como Improved Stormstrike tras una parada.",
     ["Sound on procs: proc pulses can play your pulse sound."]
         = "Sonido de procs: los avisos de procs pueden reproducir tu sonido de aviso.",
+    ["Stormstrike's cooldown matches the game's new 8 seconds."]
+        = "El tiempo de reutilización de Stormstrike coincide con los nuevos 8 segundos del juego.",
     ["Options no longer say experimental."]
         = "Las opciones ya no dicen experimental.",
     ["The pulse no longer goes off again and again in a fight for a spell that's already ready."]

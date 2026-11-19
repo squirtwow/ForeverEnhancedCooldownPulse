@@ -896,8 +896,8 @@ do
     Equal(P:BaseCooldown(1312002) .. " " .. P:BaseCooldown(400640) .. " " .. P:BaseCooldown(1240047), "8 8 8",
         "Ice Lance 8 sec at every rank (ranks 2 to 6 from the 30 Oct hotfix), so it's offered past rank 1")
     Equal(P:BaseCooldown(1464) .. " " .. P:BaseCooldown(11605) .. " " .. P:BaseCooldown(17364) .. " " .. P:BaseCooldown(408521) .. " "
-        .. P:BaseCooldown(437009) .. " " .. P:BaseCooldown(1322605), "15 15 6 12 30 8",
-        "Blizzard's notes for launch: Slam, Stormstrike, Riptide, Totemic Call; Shifting Power from build 70753's data")
+        .. P:BaseCooldown(437009) .. " " .. P:BaseCooldown(1322605), "15 15 8 12 30 8",
+        "Blizzard's notes for launch: Slam, Stormstrike (8 from build 70959), Riptide, Totemic Call; Shifting Power from build 70753's data")
     Equal(P:BaseCooldown(999999), 0, "a spell the data doesn't cover, with no way to ask: none")
     _G.GetSpellBaseCooldown = function(id)
         if id == 999999 then return 45000, 1500 end

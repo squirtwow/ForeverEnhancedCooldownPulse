@@ -367,6 +367,8 @@ ns.LOCALES.zhCN = {
         = "提前重置也可以提示，例如招架后的 Improved Stormstrike。",
     ["Sound on procs: proc pulses can play your pulse sound."]
         = "触发效果播放声音：触发效果提示可以播放你的提示音。",
+    ["Stormstrike's cooldown matches the game's new 8 seconds."]
+        = "Stormstrike 的冷却时间已与游戏新的 8 秒一致。",
     ["Options no longer say experimental."]
         = "选项不再标注为实验性。",
     ["The pulse no longer goes off again and again in a fight for a spell that's already ready."]

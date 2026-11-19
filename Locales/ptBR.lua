@@ -404,6 +404,8 @@ ns.LOCALES.ptBR = {
         = "Reinícios antecipados podem pulsar, como Improved Stormstrike após um aparo.",
     ["Sound on procs: proc pulses can play your pulse sound."]
         = "Som nos procs: os pulsos de procs podem tocar o seu som de pulso.",
+    ["Stormstrike's cooldown matches the game's new 8 seconds."]
+        = "A recarga de Stormstrike agora segue os novos 8 segundos do jogo.",
     ["Options no longer say experimental."]
         = "As opções não dizem mais experimental.",
     ["The pulse no longer goes off again and again in a fight for a spell that's already ready."]
